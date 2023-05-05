@@ -9,8 +9,8 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
-#[AsCommand(name: 'kanbanbot:need-second-review')]
-class NeedSecondReviewCommand extends Command
+#[AsCommand(name: 'kanbanbot:waiting-for-author')]
+class WaitingForAuthorCommand extends Command
 {
     protected $event;
 
@@ -18,7 +18,7 @@ class NeedSecondReviewCommand extends Command
     {
         parent::__construct();
         $this->event = $event;
-        $this->event->setStatus(DefaultEvent::STATUS_NEED_SECOND_REVIEW);
+        $this->event->setStatus(DefaultEvent::STATUS_WAITING_FOR_AUTHOR);
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int

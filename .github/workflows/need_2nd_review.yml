@@ -1,4 +1,4 @@
-name: Need 2nd approval
+name: Need second review
 
 on:
   pull_request_review:

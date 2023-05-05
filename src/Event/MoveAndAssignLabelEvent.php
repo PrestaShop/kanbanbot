@@ -6,14 +6,13 @@ use App\GraphQL\ProjectQuery;
 use App\GraphQL\PullRequestQuery;
 use App\Object\Project;
 
-class NeedSecondReviewEvent extends DefaultEvent
+class MoveAndAssignLabelEvent extends DefaultEvent
 {
     // Need to move these variables elsewhere
     const ORGANIZATION = 'PrestaShop';
     const PROJECT = 'PrestaShop';
     const PR = 32162;
     const PROJECT_NUMBER = 17;
-    const STATUS_TO_ASSIGN = 'Need 2nd approval';
 
     private $pullRequest;
     private $project;
@@ -31,7 +30,7 @@ class NeedSecondReviewEvent extends DefaultEvent
 
     protected function getProjectData(): Project
     {
-        return $this->project->getProjectData(self::ORGANIZATION, self::PROJECT_NUMBER, self::STATUS_TO_ASSIGN);
+        return $this->project->getProjectData(self::ORGANIZATION, self::PROJECT_NUMBER, $this->getStatus());
     }
 
     protected function movePullRequestToProject($projectId, $prNodeId)
