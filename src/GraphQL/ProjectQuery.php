@@ -1,8 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\GraphQL;
 
-use App\Object\Project;
+use App\Entity\Project;
 
 class ProjectQuery extends Query
 {

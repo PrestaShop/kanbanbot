@@ -1,6 +1,8 @@
 <?php
 
-namespace App\Object;
+declare(strict_types=1);
+
+namespace App\Entity;
 
 use Softonic\GraphQL\DataObjects\Query\Item;
 

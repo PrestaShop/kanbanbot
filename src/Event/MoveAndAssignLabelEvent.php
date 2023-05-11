@@ -1,19 +1,15 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Event;
 
 use App\GraphQL\ProjectQuery;
 use App\GraphQL\PullRequestQuery;
-use App\Object\Project;
+use App\Entity\Project;
 
 class MoveAndAssignLabelEvent extends DefaultEvent
 {
-    // Need to move these variables elsewhere
-    public const ORGANIZATION = 'PrestaShop';
-    public const PROJECT = 'PrestaShop';
-    public const PR = 32162;
-    public const PROJECT_NUMBER = 17;
-
     private $pullRequest;
     private $project;
 
@@ -25,12 +21,12 @@ class MoveAndAssignLabelEvent extends DefaultEvent
 
     protected function getPullRequestId(): string
     {
-        return $this->pullRequest->getNodeId(self::ORGANIZATION, self::PROJECT, self::PR); // getenv('PR_ID'),
+        return $this->pullRequest->getNodeId(getenv('ORGANIZATION'), getenv('PROJECT'), intval(getenv('PR_ID')));
     }
 
     protected function getProjectData(): Project
     {
-        return $this->project->getProjectData(self::ORGANIZATION, self::PROJECT_NUMBER, $this->getStatus());
+        return $this->project->getProjectData(getenv('ORGANIZATION'), intval(getenv('PROJECT_NUMBER')), $this->getStatus());
     }
 
     protected function movePullRequestToProject($projectId, $prNodeId)
