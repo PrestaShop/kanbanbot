@@ -10,7 +10,9 @@ class PullRequestQuery extends Query
      * @param string $organization
      * @param string $project
      * @param int $pullRequestId
+     *
      * @return string
+     *
      * @throws \Exception
      */
     public function getNodeId(string $organization, string $project, int $pullRequestId): string
@@ -33,7 +35,7 @@ class PullRequestQuery extends Query
             ]
         );
 
-        if($response->hasErrors()) {
+        if ($response->hasErrors()) {
             throw new \Exception('Error while getting Pull Request node ID');
         }
 

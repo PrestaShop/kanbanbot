@@ -9,10 +9,10 @@ use App\Object\Project;
 class MoveAndAssignLabelEvent extends DefaultEvent
 {
     // Need to move these variables elsewhere
-    const ORGANIZATION = 'PrestaShop';
-    const PROJECT = 'PrestaShop';
-    const PR = 32162;
-    const PROJECT_NUMBER = 17;
+    public const ORGANIZATION = 'PrestaShop';
+    public const PROJECT = 'PrestaShop';
+    public const PR = 32162;
+    public const PROJECT_NUMBER = 17;
 
     private $pullRequest;
     private $project;
@@ -25,7 +25,7 @@ class MoveAndAssignLabelEvent extends DefaultEvent
 
     protected function getPullRequestId(): string
     {
-        return $this->pullRequest->getNodeId(self::ORGANIZATION, self::PROJECT, self::PR); //getenv('PR_ID'),
+        return $this->pullRequest->getNodeId(self::ORGANIZATION, self::PROJECT, self::PR); // getenv('PR_ID'),
     }
 
     protected function getProjectData(): Project

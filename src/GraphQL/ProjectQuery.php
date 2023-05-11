@@ -12,7 +12,9 @@ class ProjectQuery extends Query
      * @param string $organization
      * @param int $projectNumber
      * @param string $statusToAssign
+     *
      * @return Project
+     *
      * @throws \Exception
      */
     public function getProjectData(string $organization, int $projectNumber, string $statusToAssign): Project
@@ -48,7 +50,7 @@ class ProjectQuery extends Query
             'number' => $projectNumber,
         ]);
 
-        if($response->hasErrors()) {
+        if ($response->hasErrors()) {
             throw new \Exception('Error while getting project data');
         }
 
@@ -75,7 +77,7 @@ class ProjectQuery extends Query
             'pr' => $prNodeId,
         ]);
 
-        if($response->hasErrors()) {
+        if ($response->hasErrors()) {
             throw new \Exception('Error while moving item to project');
         }
 
@@ -95,7 +97,7 @@ class ProjectQuery extends Query
                 projectId: $project
                 itemId: $item
                 fieldId: $status_field
-                value: { 
+                value: {
                   singleSelectOptionId: $status_value
                   }
               }) {
@@ -113,7 +115,7 @@ class ProjectQuery extends Query
             'status_value' => $need2ndApprovalStatusId,
         ]);
 
-        if($response->hasErrors()) {
+        if ($response->hasErrors()) {
             throw new \Exception('Error while updating item field value');
         }
 
