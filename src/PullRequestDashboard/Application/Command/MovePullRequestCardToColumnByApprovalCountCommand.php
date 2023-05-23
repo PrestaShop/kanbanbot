@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\PullRequestDashboard\Application\Command;
 
-class MovePullRequestCardToColumnByLabelCommand
+class MovePullRequestCardToColumnByApprovalCountCommand
 {
 
     public function __construct(
@@ -12,7 +12,6 @@ class MovePullRequestCardToColumnByLabelCommand
         public readonly string $repositoryOwner,
         public readonly string $repositoryName,
         public readonly string $pullRequestNumber,
-        public readonly string $label,
     )
     {
     }

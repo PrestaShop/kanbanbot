@@ -23,7 +23,7 @@ class PullRequestLabeledStrategy implements CommandStrategyInterface
      */
     public function supports(string $eventType, array $payload): bool
     {
-        return 'pull_request' === $eventType || 'labeled' === $payload['action'];
+        return 'pull_request' === $eventType and 'labeled' === $payload['action'];
     }
 
     /**

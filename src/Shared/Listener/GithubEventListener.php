@@ -22,7 +22,7 @@ class GithubEventListener
     {
 
         $command = $this->commandFactory->fromEventTypeAndPayload($event->eventType, $event->payload);
-        //Todo: to test if null
+
         if (null !== $command) {
             $this->commandBus->dispatch($command);
         }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\PullRequestDashboard\Infrastructure\Adapter;
 
+use App\PullRequestDashboard\Domain\Aggregate\PullRequest;
 use App\PullRequestDashboard\Domain\Aggregate\PullRequestCardId;
 use App\PullRequestDashboard\Infrastructure\Adapter\GraphqlGithubPullRequestCardRepository;
 use App\PullRequestDashboard\Domain\Aggregate\PullRequestCard;
@@ -32,7 +33,8 @@ class GraphqlGithubPullRequestCardRepositoryTest extends KernelTestCase
                     repositoryName: 'PrestaShop',
                     pullRequestNumber: '32618'
                 ),
-                columnName: 'Waiting for author'
+                columnName: 'Waiting for author',
+                pullRequest: new PullRequest(1),
             )
         );
         $this->assertTrue(true);

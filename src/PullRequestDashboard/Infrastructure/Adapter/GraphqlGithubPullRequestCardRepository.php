@@ -4,12 +4,13 @@ declare(strict_types=1);
 
 namespace App\PullRequestDashboard\Infrastructure\Adapter;
 
+use App\PullRequestDashboard\Domain\Aggregate\PullRequest;
 use App\PullRequestDashboard\Domain\Aggregate\PullRequestCard;
 use App\PullRequestDashboard\Domain\Aggregate\PullRequestCardId;
 use App\PullRequestDashboard\Domain\Gateway\PullRequestCardRepositoryInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
-// Todo: to test
+// Todo: to test and optimize
 class GraphqlGithubPullRequestCardRepository implements PullRequestCardRepositoryInterface
 {
     public function __construct(private readonly HttpClientInterface $githubClient)
@@ -30,7 +31,8 @@ class GraphqlGithubPullRequestCardRepository implements PullRequestCardRepositor
 
         return PullRequestCard::create(
             $pullRequestCardId,
-            columnName: $itemNodeId['data']['addProjectV2ItemById']['item']['fieldValueByName']['name']
+            $itemNodeId['data']['addProjectV2ItemById']['item']['fieldValueByName']['name'],
+            new PullRequest($this->getApprovalCount($pullRequestCardId))
         );
     }
 
@@ -150,6 +152,11 @@ class GraphqlGithubPullRequestCardRepository implements PullRequestCardRepositor
                   addProjectV2ItemById(input: {projectId: $project, contentId: $pr}) {
                     item {
                       id
+                      content {
+                        ... on PullRequest {
+                          number
+                        }
+                      }
                       fieldValueByName (name: "Status") {
                          ... on ProjectV2ItemFieldSingleSelectValue {
                             name
@@ -208,5 +215,46 @@ class GraphqlGithubPullRequestCardRepository implements PullRequestCardRepositor
                 ],
             ],
         ]);
+    }
+
+    private function getApprovalCount(PullRequestCardId $pullRequestCardId): int
+    {
+        $query = <<<'QUERY'
+          query($repositoryOwner: String!, $repositoryName: String!, $pullRequestNumber: Int!) {
+            repository(owner: $repositoryOwner, name: $repositoryName) {
+              pullRequest(number: $pullRequestNumber) {
+                id
+                number
+                reviews (first: 100) {
+                  nodes {
+                    state
+                    author {
+                      login
+                    }
+                  }
+                }
+              }
+            }
+          }
+        QUERY;
+
+
+        $response = $this->githubClient->request('POST', '/graphql', [
+            'json' => [
+                'query' => $query,
+                'variables' => [
+                    'repositoryOwner' => $pullRequestCardId->repositoryOwner,
+                    'repositoryName' => $pullRequestCardId->repositoryName,
+                    'pullRequestNumber' => (int) $pullRequestCardId->pullRequestNumber,
+                ],
+            ],
+        ]);
+
+        return count(
+            array_filter(
+                $response->toArray()['data']['repository']['pullRequest']['reviews']['nodes'],
+                static fn (array $nodes): bool => 'APPROVED' === $nodes['state']
+            )
+        );
     }
 }

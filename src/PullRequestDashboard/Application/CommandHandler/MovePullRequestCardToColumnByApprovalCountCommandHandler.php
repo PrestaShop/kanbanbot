@@ -4,19 +4,19 @@ declare(strict_types=1);
 
 namespace App\PullRequestDashboard\Application\CommandHandler;
 
-use App\PullRequestDashboard\Application\Command\MovePullRequestCardToColumnByLabelCommand;
+use App\PullRequestDashboard\Application\Command\MovePullRequestCardToColumnByApprovalCountCommand;
 use App\PullRequestDashboard\Domain\Aggregate\PullRequestCardId;
 use App\PullRequestDashboard\Domain\Exception\PullRequestCardNotFoundException;
 use App\PullRequestDashboard\Domain\Gateway\PullRequestCardRepositoryInterface;
 
-class MovePullRequestCardToColumnByLabelCommandHandler
+class MovePullRequestCardToColumnByApprovalCountCommandHandler
 {
 
     public function __construct(private readonly PullRequestCardRepositoryInterface $pullRequestCardRepository)
     {
     }
 
-    public function __invoke(MovePullRequestCardToColumnByLabelCommand $command)
+    public function __invoke(MovePullRequestCardToColumnByApprovalCountCommand $command)
     {
         $pullRequestCard = $this->pullRequestCardRepository->find(
             new PullRequestCardId(
@@ -31,7 +31,7 @@ class MovePullRequestCardToColumnByLabelCommandHandler
             throw new PullRequestCardNotFoundException();
         }
 
-        $pullRequestCard->moveColumnByLabel($command->label);
+        $pullRequestCard->moveByApprovalCount();
         $this->pullRequestCardRepository->update($pullRequestCard);
     }
 }

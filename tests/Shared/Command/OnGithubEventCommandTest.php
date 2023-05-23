@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Tests\Shared\Command;
 
+use App\PullRequestDashboard\Application\Command\MovePullRequestCardToColumnByApprovalCountCommand;
 use App\Shared\Adapter\SpyMessageBus;
 use App\PullRequest\Application\Command\RequestChangesCommand;
 use App\PullRequestDashboard\Application\Command\MovePullRequestCardToColumnByLabelCommand;
+use Exception;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Console\Tester\CommandTester;
@@ -75,12 +77,47 @@ class OnGithubEventCommandTest extends KernelTestCase
                             }
                         },
                         "number": 123
+                    },
+                   "review": {
+                      "state": "changes_requested"
                     }
                 }',
                 [
                     new RequestChangesCommand(repositoryOwner: 'owner', repositoryName: 'repo', pullRequestNumber: '123'),
                 ],
             ],
+            /*[
+                'pull_request_review',
+                '{
+                  "action": "submitted",
+                  "pull_request": {
+                    "base": {
+                      "repo": {
+                        "name": "PrestaShop",
+                        "owner": {
+                          "login": "PrestaShop"
+                        }
+                      }
+                    },
+                    "number": 162
+                  },
+                  "review": {
+                    "state": "approved"
+                  }
+                }',
+                [
+                    new MovePullRequestCardToColumnByApprovalCountCommand(
+                        projectNumber: '17',
+                        repositoryOwner: 'PrestaShop',
+                        repositoryName: 'PrestaShop',
+                        pullRequestNumber: '162'
+                    ),
+                ],
+            ],*/
+            ['pull_request_review', '{"action": ""}', []],
+            ['pull_request_review', '{"action": "submitted", "review": {"state": ""}}', []],
+            'Not supported event' => ['not_supported_event_type', '{"action": "not_supported_action"}', [],],
+            ['pull_request', '{"action": ""}', []],
             [
                 'pull_request',
                 '{
@@ -106,10 +143,28 @@ class OnGithubEventCommandTest extends KernelTestCase
                         repositoryOwner: 'owner',
                         repositoryName: 'repo',
                         pullRequestNumber: '123',
-                        columnName: 'documentation',
+                        label: 'documentation',
                     ),
                 ],
             ],
         ];
+    }
+
+    public function testInvalidJsonPayload(): void
+    {
+        /** @var string $testTempDir */
+        $testTempDir = self::$kernel->getContainer()->getParameter('test_tmp_dir');
+        $githubEventPayloadPathName = $testTempDir.'/github_event/test.json';
+        $this->fs->dumpFile($githubEventPayloadPathName, '{"action"@: "not_supported_action"}');
+
+        $statusCode = $this->commandTester->execute([
+            'event-type' => 'not_supported_event_type',
+            'event-path-name' => $githubEventPayloadPathName,
+        ]);
+
+        $this->assertStringContainsString('Error on json', $this->commandTester->getDisplay());
+        $this->assertSame(1, $statusCode);
+
+        $this->fs->remove($githubEventPayloadPathName);
     }
 }

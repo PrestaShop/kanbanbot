@@ -8,7 +8,7 @@ use App\PullRequest\Application\Command\RequestChangesCommand;
 use App\Shared\Factory\CommandFactory\CommandStrategyInterface;
 
 //Todo: use enum
-class PullRequestReviewSubmittedStrategy implements CommandStrategyInterface
+class RequestChangesStrategy implements CommandStrategyInterface
 {
 
     /**
@@ -19,7 +19,7 @@ class PullRequestReviewSubmittedStrategy implements CommandStrategyInterface
      */
     public function supports(string $eventType, array $payload): bool
     {
-        return 'pull_request_review' === $eventType || 'submitted' === $payload['action'];
+        return 'pull_request_review' === $eventType and 'submitted' === $payload['action'] and $payload['review']['state'] === 'changes_requested';
     }
 
     /**
