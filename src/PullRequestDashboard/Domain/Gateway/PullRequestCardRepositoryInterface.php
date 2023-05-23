@@ -2,8 +2,8 @@
 
 namespace App\PullRequestDashboard\Domain\Gateway;
 
-use App\PullRequestDashboard\Domain\Aggregate\PullRequestCard;
-use App\PullRequestDashboard\Domain\Aggregate\PullRequestCardId;
+use App\PullRequestDashboard\Domain\Aggregate\PullRequestCard\PullRequestCard;
+use App\PullRequestDashboard\Domain\Aggregate\PullRequestCard\PullRequestCardId;
 
 interface PullRequestCardRepositoryInterface
 {

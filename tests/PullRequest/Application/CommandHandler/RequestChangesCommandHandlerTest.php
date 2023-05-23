@@ -23,34 +23,61 @@ class RequestChangesCommandHandlerTest extends TestCase
         $this->requestChangesCommandHandler = new RequestChangesCommandHandler($this->prRepository);
     }
 
-    public function testHandle(): void
+    /**
+     * @dataProvider handleDataProvider
+     * @param string[] $originalLabels
+     */
+    public function testHandle(PullRequestId $pullRequestId, array $originalLabels): void
     {
-        $repositoryOwner = 'repositoryOwner';
-        $repositoryName = 'repositoryName';
-        $pullRequestNumber = 'pullRequestNumber';
 
         $this->prRepository->feed([
             PullRequest::create(
-                id: new PullRequestId(
-                    repositoryOwner: $repositoryOwner,
-                    repositoryName: $repositoryName,
-                    pullRequestNumber: $pullRequestNumber
-                ),
-                labels: []
+                id: $pullRequestId,
+                labels: $originalLabels,
+                approvals: []
             ),
         ]);
 
         $this->requestChangesCommandHandler->__invoke(new RequestChangesCommand(
-            repositoryOwner: $repositoryOwner,
-            repositoryName: $repositoryName,
-            pullRequestNumber: $pullRequestNumber
+            repositoryOwner: $pullRequestId->repositoryOwner,
+            repositoryName: $pullRequestId->repositoryName,
+            pullRequestNumber: $pullRequestId->pullRequestNumber,
         ));
         /** @var PullRequest $pr */
-        $pr = $this->prRepository->find(
-            new PullRequestId(repositoryOwner: $repositoryOwner, repositoryName: $repositoryName, pullRequestNumber: $pullRequestNumber)
-        );
+        $pr = $this->prRepository->find($pullRequestId);
         // todo : add enum instead
-        $this->assertContains('Waiting for author', $pr->getLabels());
+        $this->assertCount(
+            1,
+            array_filter(
+                $pr->getLabels(),
+                static fn (string $label) => $label === 'Waiting for author'
+            )
+        );
+    }
+
+    /**
+     * @return array<array{0: PullRequestId, 1: string[]}>
+     */
+    public static function handleDataProvider(): array
+    {
+        return [
+            [
+                new PullRequestId(
+                    repositoryOwner: 'repositoryOwner',
+                    repositoryName: 'repositoryName',
+                    pullRequestNumber: 'pullRequestNumber'
+                ),
+                [],
+            ],
+            [
+                new PullRequestId(
+                    repositoryOwner: 'repositoryOwner',
+                    repositoryName: 'repositoryName',
+                    pullRequestNumber: 'pullRequestNumber'
+                ),
+                ['Waiting for author'],
+            ]
+        ];
     }
 
         public function testPullRequestNotFound(): void

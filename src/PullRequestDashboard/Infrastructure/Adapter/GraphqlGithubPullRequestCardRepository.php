@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace App\PullRequestDashboard\Infrastructure\Adapter;
 
-use App\PullRequestDashboard\Domain\Aggregate\PullRequestCard;
-use App\PullRequestDashboard\Domain\Aggregate\PullRequestCardId;
+use App\PullRequestDashboard\Domain\Aggregate\PullRequestCard\Approval;
+use App\PullRequestDashboard\Domain\Aggregate\PullRequestCard\PullRequest;
+use App\PullRequestDashboard\Domain\Aggregate\PullRequestCard\PullRequestCard;
+use App\PullRequestDashboard\Domain\Aggregate\PullRequestCard\PullRequestCardId;
 use App\PullRequestDashboard\Domain\Gateway\PullRequestCardRepositoryInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
-// Todo: to test
+// Todo: to test and optimize
 class GraphqlGithubPullRequestCardRepository implements PullRequestCardRepositoryInterface
 {
     public function __construct(private readonly HttpClientInterface $githubClient)
@@ -30,7 +32,8 @@ class GraphqlGithubPullRequestCardRepository implements PullRequestCardRepositor
 
         return PullRequestCard::create(
             $pullRequestCardId,
-            columnName: $itemNodeId['data']['addProjectV2ItemById']['item']['fieldValueByName']['name']
+            $itemNodeId['data']['addProjectV2ItemById']['item']['fieldValueByName']['name'],
+            new PullRequest($this->getApprovals($pullRequestCardId))
         );
     }
 
@@ -76,6 +79,9 @@ class GraphqlGithubPullRequestCardRepository implements PullRequestCardRepositor
         return $response->toArray()['data']['repository']['pullRequest']['id'];
     }
 
+    /**
+     * @return array<string, string>
+     */
     private function getProjectData(string $organization, int $projectNumber, string $statusToAssign): array
     {
         $query = <<<'QUERY'
@@ -143,13 +149,35 @@ class GraphqlGithubPullRequestCardRepository implements PullRequestCardRepositor
         ];
     }
 
-    private function moveItemToProjet($projectId, $prNodeId): array
+        /**
+         * @return array{
+         *     "data": array{
+         *         "addProjectV2ItemById": array{
+         *             "item": array{
+         *                 "id": string,
+         *                 "content": array{
+         *                     "number": int
+         *                 },
+         *                 "fieldValueByName": array{
+         *                     "name": string
+         *                 }
+         *             }
+         *         }
+         *     }
+         * }
+         */
+    private function moveItemToProjet(string $projectId, string $prNodeId): array
     {
             $query = <<<'QUERY'
                 mutation($project:ID!, $pr:ID!) {
                   addProjectV2ItemById(input: {projectId: $project, contentId: $pr}) {
                     item {
                       id
+                      content {
+                        ... on PullRequest {
+                          number
+                        }
+                      }
                       fieldValueByName (name: "Status") {
                          ... on ProjectV2ItemFieldSingleSelectValue {
                             name
@@ -170,10 +198,27 @@ class GraphqlGithubPullRequestCardRepository implements PullRequestCardRepositor
             ],
         ]);
 
+        /**
+         * @var  array{
+         *     "data": array{
+         *         "addProjectV2ItemById": array{
+         *             "item": array{
+         *                 "id": string,
+         *                 "content": array{
+         *                     "number": int
+         *                 },
+         *                 "fieldValueByName": array{
+         *                     "name": string
+         *                 }
+         *             }
+         *         }
+         *     }
+         * }
+         */
         return $response->toArray();
     }
 
-    private function updateItemFieldValue($projectId, $itemId, $statusId, $need2ndApprovalStatusId): void
+    private function updateItemFieldValue(string $projectId, string $itemId, string $statusId, string $statusValue): void
     {
         $query = <<<'QUERY'
             mutation (
@@ -204,9 +249,55 @@ class GraphqlGithubPullRequestCardRepository implements PullRequestCardRepositor
                     'project' => $projectId,
                     'item' => $itemId,
                     'status_field' => $statusId,
-                    'status_value' => $need2ndApprovalStatusId,
+                    'status_value' => $statusValue,
                 ],
             ],
         ]);
+    }
+
+    /**
+     * @return Approval[]
+     */
+    private function getApprovals(PullRequestCardId $pullRequestCardId): array
+    {
+        $query = <<<'QUERY'
+          query($repositoryOwner: String!, $repositoryName: String!, $pullRequestNumber: Int!) {
+            repository(owner: $repositoryOwner, name: $repositoryName) {
+              pullRequest(number: $pullRequestNumber) {
+                id
+                number
+                reviews (first: 100) {
+                  nodes {
+                    state
+                    author {
+                      login
+                    }
+                  }
+                }
+              }
+            }
+          }
+        QUERY;
+
+
+        $response = $this->githubClient->request('POST', '/graphql', [
+            'json' => [
+                'query' => $query,
+                'variables' => [
+                    'repositoryOwner' => $pullRequestCardId->repositoryOwner,
+                    'repositoryName' => $pullRequestCardId->repositoryName,
+                    'pullRequestNumber' => (int) $pullRequestCardId->pullRequestNumber,
+                ],
+            ],
+        ]);
+        //Todo: commiters hardcoded
+        $approvals = array_filter(
+            $response->toArray()['data']['repository']['pullRequest']['reviews']['nodes'],
+            static fn (array $nodes): bool => 'APPROVED' === $nodes['state']
+        );
+        return array_map(
+            static fn (array $nodes): Approval => new Approval($nodes['author']['login']),
+            $approvals
+        );
     }
 }

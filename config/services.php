@@ -2,8 +2,12 @@
 
 use App\PullRequest\Domain\Gateway\PullRequestRepositoryInterface;
 use App\PullRequest\Infrastructure\Adapter\RestPullRequestRepository;
+use App\PullRequestDashboard\Domain\Gateway\CommitterRepositoryInterface;
+use App\PullRequest\Domain\Gateway\CommitterRepositoryInterface as PRCommitterRepositoryInterface;
 use App\PullRequestDashboard\Domain\Gateway\PullRequestCardRepositoryInterface;
 use App\PullRequestDashboard\Infrastructure\Adapter\GraphqlGithubPullRequestCardRepository;
+use App\PullRequestDashboard\Infrastructure\Adapter\RestGithubCommitterRepository;
+use App\PullRequest\Infrastructure\Adapter\RestGithubCommitterRepository as PRRestGithubCommitterRepository;
 use App\Shared\Adapter\SpyMessageBus;
 use App\Shared\Factory\CommandFactory\CommandFactory;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
@@ -36,6 +40,8 @@ return function (ContainerConfigurator $configurator) {
 
     $services->alias(PullRequestRepositoryInterface::class, RestPullRequestRepository::class);
     $services->alias(PullRequestCardRepositoryInterface::class, GraphqlGithubPullRequestCardRepository::class);
+    $services->alias(CommitterRepositoryInterface::class, RestGithubCommitterRepository::class);
+    $services->alias(PRCommitterRepositoryInterface::class, PRRestGithubCommitterRepository::class);
     $services->set(CommandFactory::class)
         ->args([tagged_iterator('app.shared.command_strategy')])
     ;
@@ -57,6 +63,8 @@ return function (ContainerConfigurator $configurator) {
 
         $services->set(RestPullRequestRepository::class);
         $services->set(GraphqlGithubPullRequestCardRepository::class);
+        $services->set(RestGithubCommitterRepository::class);
+        $services->set(PRRestGithubCommitterRepository::class);
         $services->alias(MessageBusInterface::class, SpyMessageBus::class);
     }
 };

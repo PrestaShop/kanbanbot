@@ -3,6 +3,7 @@
 namespace App\Shared\Command;
 
 use App\Shared\Event\GithubEvent;
+use Exception;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -40,10 +41,16 @@ class OnGithubEventCommand extends Command
         /** @var string $eventPayload */
         $eventPayload = file_get_contents($eventPathName);
 
-        $this->eventDispatcher->dispatch(new GithubEvent(
-            eventType: $eventType,
-            payload: $eventPayload
-        ));
+        try {
+            $this->eventDispatcher->dispatch(new GithubEvent(
+                eventType: $eventType,
+                payload: $eventPayload
+            ));
+        } catch (Exception $e) {
+            $io->error($e->getMessage());
+
+            return Command::FAILURE;
+        }
 
         $io->success('Github event was handled with success!');
 

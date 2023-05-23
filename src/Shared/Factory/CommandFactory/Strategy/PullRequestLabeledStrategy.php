@@ -17,13 +17,12 @@ class PullRequestLabeledStrategy implements CommandStrategyInterface
 
     /**
      * @param array{
-     *     action: string,
-     *     }
+     *     action: string
      * } $payload
      */
     public function supports(string $eventType, array $payload): bool
     {
-        return 'pull_request' === $eventType || 'labeled' === $payload['action'];
+        return 'pull_request' === $eventType and 'labeled' === $payload['action'];
     }
 
     /**
@@ -37,18 +36,22 @@ class PullRequestLabeledStrategy implements CommandStrategyInterface
      *                 }
      *             }
      *         },
-     *         number: int
+     *         number: int,
+     *     },
+     *     label: array{
+     *        name: string
      *     }
      * } $payload
+     * @return MovePullRequestCardToColumnByLabelCommand[]
      */
-    public function createCommandFromPayload(array $payload): MovePullRequestCardToColumnByLabelCommand
+    public function createCommandsFromPayload(array $payload): array
     {
-        return new MovePullRequestCardToColumnByLabelCommand(
+        return [new MovePullRequestCardToColumnByLabelCommand(
             $this->pullRequestDashboardNumber,
             $payload['pull_request']['base']['repo']['owner']['login'],
             $payload['pull_request']['base']['repo']['name'],
             (string) $payload['pull_request']['number'],
             (string) $payload['label']['name'],
-        );
+        )];
     }
 }

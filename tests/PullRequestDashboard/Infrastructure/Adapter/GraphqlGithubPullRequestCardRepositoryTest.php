@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Tests\PullRequestDashboard\Infrastructure\Adapter;
 
-use App\PullRequestDashboard\Domain\Aggregate\PullRequestCardId;
+use App\PullRequestDashboard\Domain\Aggregate\PullRequestCard\Approval;
+use App\PullRequestDashboard\Domain\Aggregate\PullRequestCard\PullRequest;
+use App\PullRequestDashboard\Domain\Aggregate\PullRequestCard\PullRequestCardId;
 use App\PullRequestDashboard\Infrastructure\Adapter\GraphqlGithubPullRequestCardRepository;
-use App\PullRequestDashboard\Domain\Aggregate\PullRequestCard;
+use App\PullRequestDashboard\Domain\Aggregate\PullRequestCard\PullRequestCard;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 class GraphqlGithubPullRequestCardRepositoryTest extends KernelTestCase
@@ -32,7 +34,8 @@ class GraphqlGithubPullRequestCardRepositoryTest extends KernelTestCase
                     repositoryName: 'PrestaShop',
                     pullRequestNumber: '32618'
                 ),
-                columnName: 'Waiting for author'
+                columnName: 'Waiting for author',
+                pullRequest: new PullRequest([new Approval('lartist')]),
             )
         );
         $this->assertTrue(true);

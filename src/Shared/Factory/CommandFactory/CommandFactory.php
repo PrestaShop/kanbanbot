@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Shared\Factory\CommandFactory;
 
+use Exception;
+
 class CommandFactory
 {
     /**
@@ -13,16 +15,24 @@ class CommandFactory
     {
     }
 
-    public function fromEventTypeAndPayload(string $eventType, string $payload): ?object
+    /**
+     * @return object[]
+     */
+    public function fromEventTypeAndPayload(string $eventType, string $payload): array
     {
-        //Todo: to test error on json
         $payload = json_decode($payload, true);
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            throw new Exception('Error on json');
+        }
+
+
         foreach ($this->commandStrategies as $commandStrategy) {
+            /** @var array<mixed> $payload */
             if ($commandStrategy->supports($eventType, $payload)) {
-                return $commandStrategy->createCommandFromPayload($payload);
+                return $commandStrategy->createCommandsFromPayload($payload);
             }
         }
-        //Todo: to test
-        return null;
+
+        return [];
     }
 }

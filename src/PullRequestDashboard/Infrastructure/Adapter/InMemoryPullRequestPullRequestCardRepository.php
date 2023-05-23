@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\PullRequestDashboard\Infrastructure\Adapter;
 
-use App\PullRequestDashboard\Domain\Aggregate\PullRequestCard;
-use App\PullRequestDashboard\Domain\Aggregate\PullRequestCardId;
+use App\PullRequestDashboard\Domain\Aggregate\PullRequestCard\PullRequestCard;
+use App\PullRequestDashboard\Domain\Aggregate\PullRequestCard\PullRequestCardId;
 use App\PullRequestDashboard\Domain\Gateway\PullRequestCardRepositoryInterface;
 
-class InMemoryPullRequestPullRequestCardRepositoryInterface implements PullRequestCardRepositoryInterface
+class InMemoryPullRequestPullRequestCardRepository implements PullRequestCardRepositoryInterface
 {
     /** @var PullRequestCard[]  */
     private array $pullRequestCards = [];
