@@ -1,0 +1,5 @@
+controllers:
+    resource:
+        path: ../src/Shared/Controller/
+        namespace: App\Shared\Controller
+    type: attribute
