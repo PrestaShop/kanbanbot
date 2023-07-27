@@ -41,7 +41,6 @@ class HealthcheckController extends AbstractController
         $status = [
             'status' => !in_array(false, array_values($checkServices)) ? 'OK' : 'KO',
             'version' => $this->getParameter('app.version'),
-            'releaseDate' => null,
         ];
         foreach ($checkServices as $serviceName => $serviceStatus) {
             $status[$serviceName] = ['status' => $serviceStatus ? 'up' : 'down'];
