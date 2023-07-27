@@ -17,6 +17,7 @@ use function Symfony\Component\DependencyInjection\Loader\Configurator\tagged_it
 
 return function (ContainerConfigurator $configurator) {
     $configurator->parameters()
+        ->set('app.version', '1.1.0')
         ->set('pull_request_dashboard_number', '17')
     ;
     $services = $configurator->services();
