@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Shared\Infrastructure\Factory\CommandFactory\Strategy\Command;
 
+use App\PullRequest\Application\Command\CheckHookCommand;
 use App\PullRequest\Application\Command\CheckTableDescriptionCommand;
 use App\PullRequest\Application\Command\CheckTranslationsCommand;
 use App\PullRequest\Application\Command\WelcomeNewContributorCommand;
@@ -58,7 +59,7 @@ class PullRequestReadyForReviewStrategy implements CommandStrategyInterface
      *     },
      * } $payload
      *
-     * @return array<CheckTableDescriptionCommand|WelcomeNewContributorCommand|MovePullRequestCardToColumnByLabelCommand|CheckTranslationsCommand>
+     * @return array<CheckTableDescriptionCommand|WelcomeNewContributorCommand|MovePullRequestCardToColumnByLabelCommand|CheckTranslationsCommand|CheckHookCommand>
      */
     public function createCommandsFromPayload(array $payload): array
     {
@@ -90,6 +91,11 @@ class PullRequestReadyForReviewStrategy implements CommandStrategyInterface
                 $repoOwner,
                 $repoName,
                 $prNumber,
+            ),
+            new CheckHookCommand(
+                $repoOwner,
+                $repoName,
+                $prNumber
             ),
         ];
     }

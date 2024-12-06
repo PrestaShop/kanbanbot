@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Shared\Infrastructure\Factory\CommandFactory\Strategy\Command;
 
+use App\PullRequest\Application\Command\CheckHookCommand;
 use App\PullRequest\Application\Command\CheckTranslationsCommand;
 use App\Shared\Infrastructure\Factory\CommandFactory\CommandStrategyInterface;
 
@@ -37,7 +38,7 @@ class PullRequestSynchronizeStrategy implements CommandStrategyInterface
      *     },
      * } $payload
      *
-     * @return array<CheckTranslationsCommand>
+     * @return array<CheckTranslationsCommand|CheckHookCommand>
      */
     public function createCommandsFromPayload(array $payload): array
     {
@@ -47,6 +48,11 @@ class PullRequestSynchronizeStrategy implements CommandStrategyInterface
 
         return [
             new CheckTranslationsCommand(
+                $repoOwner,
+                $repoName,
+                $prNumber
+            ),
+            new CheckHookCommand(
                 $repoOwner,
                 $repoName,
                 $prNumber

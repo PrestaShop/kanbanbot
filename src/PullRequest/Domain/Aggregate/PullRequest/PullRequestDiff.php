@@ -113,4 +113,30 @@ class PullRequestDiff
 
         return $out;
     }
+
+    public function hasHooksModifications(): bool
+    {
+        $found = false;
+
+        foreach ($this->files as $file) {
+            foreach ($file->getHunks() as $hunk) {
+                $new = str_replace("\n", '', $hunk->getNew());
+
+                if (
+                    preg_match('/dispatchHookWithParameters/', $new)
+                    || preg_match('/dispatchWithParameters/', $new)
+                    || preg_match('/Hook::exec/', $new)
+                ) {
+                    $found = true;
+                    break;
+                }
+            }
+
+            if ($found) {
+                break;
+            }
+        }
+
+        return $found;
+    }
 }

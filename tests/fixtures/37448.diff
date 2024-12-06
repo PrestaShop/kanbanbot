@@ -1,0 +1,21 @@
+diff --git a/classes/checkout/CheckoutPersonalInformationStep.php b/classes/checkout/CheckoutPersonalInformationStep.php
+index 0cc7a1e7ecf27..d0f94857501c6 100644
+--- a/classes/checkout/CheckoutPersonalInformationStep.php
++++ b/classes/checkout/CheckoutPersonalInformationStep.php
+@@ -70,7 +70,14 @@ public function handleRequest(array $requestParameters = [])
+ 
+         if (isset($requestParameters['submitCreate'])) {
+             $this->registerForm->fillWith($requestParameters);
+-            if ($this->registerForm->submit()) {
++            $hookResult = array_reduce(
++                Hook::exec('actionSubmitAccountBefore', [], null, true),
++                function ($carry, $item) {
++                    return $carry && $item;
++                },
++                true
++            );
++            if ($hookResult && $this->registerForm->submit()) {
+                 $this->setNextStepAsCurrent();
+                 $this->setComplete(true);
+             } else {
+

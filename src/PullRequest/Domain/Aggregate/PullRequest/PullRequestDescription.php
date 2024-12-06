@@ -11,7 +11,7 @@ class PullRequestDescription
     public const TARGET_BRANCH_AVAILABLE = ['develop', '8.1.x', '8.2.x', '9.0.x'];
     public const TEMPLATE_DESCRIPTION = 'Please be specific when describing the PR. <br> Every detail helps: versions, browser/server configuration, specific module/theme, etc. Feel free to add more information below this table.';
     public const TYPES_AVAILABLE = ['bug fix', 'improvement', 'new feature', 'refacto'];
-    public const CATEGORIES_AVAILABLE = ['FO', 'BO', 'CO', 'IN', 'WS', 'TE', 'LO', 'ME', 'PM', 'HO'];
+    public const CATEGORIES_AVAILABLE = ['FO', 'BO', 'CO', 'IN', 'WS', 'TE', 'LO', 'ME', 'PM'];
     public const TEMPLATE_HOW_TO_TEST = 'Indicate how to verify that this change works as expected.';
     public const TEMPLATE_UI_TESTS = 'Please run UI tests and paste here the link to the run. [Read this page to know why and how to use this tool](https://devdocs.prestashop-project.org/8/contribute/contribution-guidelines/ui-tests/).';
 
@@ -53,7 +53,7 @@ class PullRequestDescription
         return null;
     }
 
-    #[Assert\NotBlank(message: 'The `category` should be one of these: `FO`, `BO`, `CO`, `IN`, `WS`, `TE`, `LO`, `ME`, `PM` or `HO`. ([Read explanation](https://devdocs.prestashop-project.org/9/contribute/contribution-guidelines/pull-requests/#branch))')]
+    #[Assert\NotBlank(message: 'The `category` should be one of these: `FO`, `BO`, `CO`, `IN`, `WS`, `TE`, `LO`, `ME` or `PM`. ([Read explanation](https://devdocs.prestashop-project.org/9/contribute/contribution-guidelines/pull-requests/#branch))')]
     public function getCategory(): ?string
     {
         $category = strtoupper($this->extractWithRegex('Category'));

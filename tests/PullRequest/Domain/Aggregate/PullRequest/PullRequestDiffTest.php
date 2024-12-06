@@ -71,4 +71,26 @@ class PullRequestDiffTest extends KernelTestCase
         ];
         $this->assertEquals($needles, $translations);
     }
+
+    public function testParseDiffWithoutHooksModifications(): void
+    {
+        $diffContent = file_get_contents(__DIR__.'/../../../../fixtures/30510.diff');
+        $pr = new PullRequestId('prestashop', 'prestashop', '30510');
+        $prDiff = PullRequestDiff::parseDiff($pr, $diffContent); // @phpstan-ignore-line
+
+        $this->assertNotNull($prDiff);
+
+        $this->assertFalse($prDiff->hasHooksModifications());
+    }
+
+    public function testParseDiffWithHooksModifications(): void
+    {
+        $diffContent = file_get_contents(__DIR__.'/../../../../fixtures/37448.diff');
+        $pr = new PullRequestId('prestashop', 'prestashop', '37448');
+        $prDiff = PullRequestDiff::parseDiff($pr, $diffContent); // @phpstan-ignore-line
+
+        $this->assertNotNull($prDiff);
+
+        $this->assertTrue($prDiff->hasHooksModifications());
+    }
 }

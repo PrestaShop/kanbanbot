@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Shared\Infrastructure\Webhook;
 
 use App\PullRequest\Application\Command\AddLabelByApprovalCountCommand;
+use App\PullRequest\Application\Command\CheckHookCommand;
 use App\PullRequest\Application\Command\CheckMilestoneCommand;
 use App\PullRequest\Application\Command\CheckTableDescriptionCommand;
 use App\PullRequest\Application\Command\CheckTranslationsCommand;
@@ -235,6 +236,11 @@ class GithubWebhookTest extends WebTestCase
                         repositoryName: 'repo',
                         pullRequestNumber: '123'
                     ),
+                    new CheckHookCommand(
+                        repositoryOwner: 'owner',
+                        repositoryName: 'repo',
+                        pullRequestNumber: '123'
+                    ),
                 ],
             ],
             [
@@ -296,6 +302,11 @@ class GithubWebhookTest extends WebTestCase
                         label: 'Ready for review',
                     ),
                     new CheckTranslationsCommand(
+                        repositoryOwner: 'owner',
+                        repositoryName: 'repo',
+                        pullRequestNumber: '123'
+                    ),
+                    new CheckHookCommand(
                         repositoryOwner: 'owner',
                         repositoryName: 'repo',
                         pullRequestNumber: '123'
@@ -370,6 +381,11 @@ class GithubWebhookTest extends WebTestCase
                         label: 'Reopened',
                     ),
                     new CheckTranslationsCommand(
+                        repositoryOwner: 'owner',
+                        repositoryName: 'repo',
+                        pullRequestNumber: '123'
+                    ),
+                    new CheckHookCommand(
                         repositoryOwner: 'owner',
                         repositoryName: 'repo',
                         pullRequestNumber: '123'
@@ -473,6 +489,11 @@ class GithubWebhookTest extends WebTestCase
                 }',
                 [
                     new CheckTranslationsCommand(
+                        repositoryOwner: 'owner',
+                        repositoryName: 'repo',
+                        pullRequestNumber: '123'
+                    ),
+                    new CheckHookCommand(
                         repositoryOwner: 'owner',
                         repositoryName: 'repo',
                         pullRequestNumber: '123'

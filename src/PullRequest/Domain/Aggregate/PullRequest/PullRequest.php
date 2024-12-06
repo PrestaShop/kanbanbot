@@ -56,6 +56,13 @@ class PullRequest
         }
     }
 
+    public function hookContribution(): void
+    {
+        if (!in_array('Hook Contribution', $this->labels, true)) {
+            $this->labels[] = 'Hook Contribution';
+        }
+    }
+
     /**
      * @param string[] $committers
      */
@@ -130,11 +137,6 @@ class PullRequest
         // Add label if BC break declared
         if ($description->isBCBreak()) {
             $this->labels[] = 'BC break';
-        }
-
-        // Add label if it's a hook PR
-        if ('HO' === $description->getCategory()) {
-            $this->labels[] = 'Hook Contribution';
         }
     }
 
