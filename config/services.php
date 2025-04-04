@@ -17,7 +17,7 @@ use function Symfony\Component\DependencyInjection\Loader\Configurator\tagged_it
 
 return function (ContainerConfigurator $configurator) {
     $configurator->parameters()
-        ->set('app.version', '1.10.0')
+        ->set('app.version', '1.10.1')
         ->set('pull_request_dashboard_number', '17')
         ->set('columns.ready_for_review', 'Ready for review')
         ->set('columns.reopened', 'Reopened')
