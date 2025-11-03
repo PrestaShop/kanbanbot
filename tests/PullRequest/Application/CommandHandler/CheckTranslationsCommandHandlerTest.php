@@ -64,7 +64,7 @@ class CheckTranslationsCommandHandlerTest extends TestCase
         $pr = $this->prRepository->find($this->prId);
 
         $this->assertCount(
-            $expectedLabelWaitingWording ? 1 : 0,
+            0, // $expectedLabelWaitingWording ? 1 : 0 - this is temporay disabled for now.
             array_filter(
                 $pr->getLabels(),
                 static fn (string $label) => 'Waiting for wording' === $label

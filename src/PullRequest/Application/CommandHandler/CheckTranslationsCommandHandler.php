@@ -51,7 +51,7 @@ class CheckTranslationsCommandHandler
         // If we have new translations keys, we add a comment to the PR.
         if (!empty($newTranslationsKeys)) {
             $this->prRepository->addTranslationsComment($prId, $newTranslationsKeys, $newDomains);
-            $pullRequest->waitingForWording();
+            // $pullRequest->waitingForWording();
             $this->prRepository->update($pullRequest);
         }
     }
