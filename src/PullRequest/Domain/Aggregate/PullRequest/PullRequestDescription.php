@@ -8,7 +8,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 
 class PullRequestDescription
 {
-    public const TARGET_BRANCH_AVAILABLE = ['develop', '8.1.x', '8.2.x', '9.0.x'];
+    public const TARGET_BRANCH_AVAILABLE = ['develop', '8.1.x', '8.2.x', '9.0.x', '9.1.x'];
     public const TEMPLATE_DESCRIPTION = 'Please be specific when describing the PR. <br> Every detail helps: versions, browser/server configuration, specific module/theme, etc. Feel free to add more information below this table.';
     public const TYPES_AVAILABLE = ['bug fix', 'improvement', 'new feature', 'refacto'];
     public const CATEGORIES_AVAILABLE = ['FO', 'BO', 'CO', 'IN', 'WS', 'TE', 'LO', 'ME', 'PM'];
@@ -20,7 +20,7 @@ class PullRequestDescription
     ) {
     }
 
-    #[Assert\NotBlank(message: 'The `branch` should be `develop`, `9.0.x` or `8.2.x`. ([Read explanation](https://devdocs.prestashop-project.org/9/contribute/contribution-guidelines/pull-requests/#branch))')]
+    #[Assert\NotBlank(message: 'The `branch` should be `develop`, `9.1.x`, `9.0.x` or `8.2.x`. ([Read explanation](https://devdocs.prestashop-project.org/9/contribute/contribution-guidelines/pull-requests/#branch))')]
     public function getBranch(): ?string
     {
         $branch = $this->extractWithRegex('Branch');

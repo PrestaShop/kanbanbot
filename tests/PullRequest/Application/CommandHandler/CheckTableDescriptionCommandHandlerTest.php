@@ -111,7 +111,7 @@ class CheckTableDescriptionCommandHandlerTest extends KernelTestCase
                 ),
                 '',
                 [
-                    'The `branch` should be `develop`, `9.0.x` or `8.2.x`. ([Read explanation](https://devdocs.prestashop-project.org/9/contribute/contribution-guidelines/pull-requests/#branch))',
+                    'The `branch` should be `develop`, `9.1.x`, `9.0.x` or `8.2.x`. ([Read explanation](https://devdocs.prestashop-project.org/9/contribute/contribution-guidelines/pull-requests/#branch))',
                     "The `description` shouldn't be empty. ([Read explanation](https://devdocs.prestashop-project.org/9/contribute/contribution-guidelines/pull-requests/#description))",
                     'The `type` should be one of these: `new feature`, `improvement`, `bug fix` or `refacto`. ([Read explanation](https://devdocs.prestashop-project.org/9/contribute/contribution-guidelines/pull-requests/#branch))',
                     'The `category` should be one of these: `FO`, `BO`, `CO`, `IN`, `WS`, `TE`, `LO`, `ME` or `PM`. ([Read explanation](https://devdocs.prestashop-project.org/9/contribute/contribution-guidelines/pull-requests/#branch))',
@@ -146,7 +146,7 @@ class CheckTableDescriptionCommandHandlerTest extends KernelTestCase
 | Sponsor company   | Your company or customer's name goes here (if applicable).
 ",
                 [
-                    'The `branch` should be `develop`, `9.0.x` or `8.2.x`. ([Read explanation](https://devdocs.prestashop-project.org/9/contribute/contribution-guidelines/pull-requests/#branch))',
+                    'The `branch` should be `develop`, `9.1.x`, `9.0.x` or `8.2.x`. ([Read explanation](https://devdocs.prestashop-project.org/9/contribute/contribution-guidelines/pull-requests/#branch))',
                     "The `description` shouldn't be empty. ([Read explanation](https://devdocs.prestashop-project.org/9/contribute/contribution-guidelines/pull-requests/#description))",
                     'The `type` should be one of these: `new feature`, `improvement`, `bug fix` or `refacto`. ([Read explanation](https://devdocs.prestashop-project.org/9/contribute/contribution-guidelines/pull-requests/#branch))',
                     'The `category` should be one of these: `FO`, `BO`, `CO`, `IN`, `WS`, `TE`, `LO`, `ME` or `PM`. ([Read explanation](https://devdocs.prestashop-project.org/9/contribute/contribution-guidelines/pull-requests/#branch))',
@@ -166,7 +166,7 @@ class CheckTableDescriptionCommandHandlerTest extends KernelTestCase
                     pullRequestNumber: 'fake'
                 ),
                 '| Branch?           | fake',
-                ['The `branch` should be `develop`, `9.0.x` or `8.2.x`. ([Read explanation](https://devdocs.prestashop-project.org/9/contribute/contribution-guidelines/pull-requests/#branch))'],
+                ['The `branch` should be `develop`, `9.1.x`, `9.0.x` or `8.2.x`. ([Read explanation](https://devdocs.prestashop-project.org/9/contribute/contribution-guidelines/pull-requests/#branch))'],
                 [],
                 false,
                 true,
@@ -180,7 +180,7 @@ class CheckTableDescriptionCommandHandlerTest extends KernelTestCase
                 ),
                 '| Branch?           | develop',
                 [],
-                ['The `branch` should be `develop`, `9.0.x` or `8.2.x`. ([Read explanation](https://devdocs.prestashop-project.org/9/contribute/contribution-guidelines/pull-requests/#branch))'],
+                ['The `branch` should be `develop`, `9.1.x`, `9.0.x` or `8.2.x`. ([Read explanation](https://devdocs.prestashop-project.org/9/contribute/contribution-guidelines/pull-requests/#branch))'],
                 false,
                 true,
                 ['develop'],
@@ -191,9 +191,35 @@ class CheckTableDescriptionCommandHandlerTest extends KernelTestCase
                     repositoryName: 'PrestaShop',
                     pullRequestNumber: 'fake'
                 ),
+                '| Branch?           | 9.1.x',
+                [],
+                ['The `branch` should be `develop`, `9.1.x`, `9.0.x` or `8.2.x`. ([Read explanation](https://devdocs.prestashop-project.org/9/contribute/contribution-guidelines/pull-requests/#branch))'],
+                false,
+                true,
+                ['9.1.x'],
+            ],
+            [
+                new PullRequestId(
+                    repositoryOwner: 'PrestaShop',
+                    repositoryName: 'PrestaShop',
+                    pullRequestNumber: 'fake'
+                ),
+                '| Branch?           | 9.0.x',
+                [],
+                ['The `branch` should be `develop`, `9.1.x`, `9.0.x` or `8.2.x`. ([Read explanation](https://devdocs.prestashop-project.org/9/contribute/contribution-guidelines/pull-requests/#branch))'],
+                false,
+                true,
+                ['9.0.x'],
+            ],
+            [
+                new PullRequestId(
+                    repositoryOwner: 'PrestaShop',
+                    repositoryName: 'PrestaShop',
+                    pullRequestNumber: 'fake'
+                ),
                 '| Branch?           | 8.2.x',
                 [],
-                ['The `branch` should be `develop`, `9.0.x` or `8.2.x`. ([Read explanation](https://devdocs.prestashop-project.org/9/contribute/contribution-guidelines/pull-requests/#branch))'],
+                ['The `branch` should be `develop`, `9.1.x`, `9.0.x` or `8.2.x`. ([Read explanation](https://devdocs.prestashop-project.org/9/contribute/contribution-guidelines/pull-requests/#branch))'],
                 false,
                 true,
                 ['8.2.x'],
@@ -667,14 +693,14 @@ class CheckTableDescriptionCommandHandlerTest extends KernelTestCase
                 ),
                 '
                 | Branch?           | develop
-                | Description?      | Fake description 
+                | Description?      | Fake description
                 | Type?             | new feature
                 | Category?         | FO
                 | BC breaks?        | no
                 | Deprecations?     | no
                 | How to test?      | Fake how to test
-                | UI Tests          | Fake UI tests 
-                | Fixed issue or discussion?     | Fixes #123 
+                | UI Tests          | Fake UI tests
+                | Fixed issue or discussion?     | Fixes #123
                 ',
                 [],
                 [],
