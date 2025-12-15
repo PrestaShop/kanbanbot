@@ -111,6 +111,7 @@ class PullRequest
             '8.1.x',
             '8.2.x',
             '9.0.x',
+            '9.1.x',
             'Bug fix',
             'Improvement',
             'Feature',
