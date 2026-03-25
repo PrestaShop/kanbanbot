@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Shared\Infrastructure\Factory\CommandFactory\Strategy\Command;
 
+use App\PullRequest\Application\Command\NotifyCommunityQACommand;
 use App\PullRequestDashboard\Application\Command\MovePullRequestCardToColumnByLabelCommand;
 use App\Shared\Infrastructure\Factory\CommandFactory\CommandStrategyInterface;
 
@@ -42,7 +43,7 @@ class PullRequestLabeledStrategy implements CommandStrategyInterface
      *     }
      * } $payload
      *
-     * @return array<MovePullRequestCardToColumnByLabelCommand>
+     * @return array<MovePullRequestCardToColumnByLabelCommand|NotifyCommunityQACommand>
      */
     public function createCommandsFromPayload(array $payload): array
     {
@@ -51,7 +52,7 @@ class PullRequestLabeledStrategy implements CommandStrategyInterface
         $prNumber = (string) $payload['pull_request']['number'];
         $labelName = (string) $payload['label']['name'];
 
-        return [
+        $commands = [
             new MovePullRequestCardToColumnByLabelCommand(
                 $this->pullRequestDashboardNumber,
                 $repoOwner,
@@ -60,5 +61,15 @@ class PullRequestLabeledStrategy implements CommandStrategyInterface
                 $labelName,
             ),
         ];
+
+        if ('Waiting for QA by community' === $labelName) {
+            $commands[] = new NotifyCommunityQACommand(
+                $repoOwner,
+                $repoName,
+                $prNumber,
+            );
+        }
+
+        return $commands;
     }
 }
