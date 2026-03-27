@@ -10,6 +10,7 @@ use App\PullRequest\Application\Command\CheckMilestoneCommand;
 use App\PullRequest\Application\Command\CheckSecurityBranchCommand;
 use App\PullRequest\Application\Command\CheckTableDescriptionCommand;
 use App\PullRequest\Application\Command\CheckTranslationsCommand;
+use App\PullRequest\Application\Command\NotifyCommunityQACommand;
 use App\PullRequest\Application\Command\RequestChangesCommand;
 use App\PullRequest\Application\Command\WelcomeNewContributorCommand;
 use App\PullRequestDashboard\Application\Command\MovePullRequestCardToColumnByApprovalCountCommand;
@@ -190,6 +191,40 @@ class GithubWebhookTest extends WebTestCase
                         repositoryName: 'repo',
                         pullRequestNumber: '123',
                         label: 'documentation',
+                    ),
+                ],
+            ],
+            [
+                'pull_request',
+                '{
+                    "action": "labeled",
+                    "label": {
+                        "name": "Waiting for QA by community"
+                    },
+                    "pull_request": {
+                        "base": {
+                            "repo": {
+                                "name": "repo",
+                                "owner": {
+                                    "login": "owner"
+                                }
+                            }
+                        },
+                        "number": 123
+                    }
+                }',
+                [
+                    new MovePullRequestCardToColumnByLabelCommand(
+                        projectNumber: '17',
+                        repositoryOwner: 'owner',
+                        repositoryName: 'repo',
+                        pullRequestNumber: '123',
+                        label: 'Waiting for QA by community',
+                    ),
+                    new NotifyCommunityQACommand(
+                        repositoryOwner: 'owner',
+                        repositoryName: 'repo',
+                        pullRequestNumber: '123',
                     ),
                 ],
             ],

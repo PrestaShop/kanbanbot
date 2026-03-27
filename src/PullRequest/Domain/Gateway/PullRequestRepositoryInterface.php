@@ -36,4 +36,6 @@ interface PullRequestRepositoryInterface
     public function isMilestoneNeeded(PullRequestId $pullRequestId): bool;
 
     public function addSecurityBranchComment(PullRequestId $pullRequestId, string $targetedBranch): void;
+
+    public function addCommunityQAComment(PullRequestId $pullRequestId): void;
 }

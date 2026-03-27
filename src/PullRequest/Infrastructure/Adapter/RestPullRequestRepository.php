@@ -241,4 +241,18 @@ class RestPullRequestRepository implements PullRequestRepositoryInterface
             ]);
         }
     }
+
+    public function addCommunityQAComment(PullRequestId $pullRequestId): void
+    {
+        // First, we need to check if the comment already exists
+        $alreadyExistComment = $this->getExistingComment($pullRequestId, '<!-- PR_COMMUNITY_QA -->');
+
+        // If the comment does not exist, we need to add it.
+        if (!$alreadyExistComment) {
+            $comment = $this->twig->render('pr_comments/community_qa.html.twig');
+            $this->githubClient->request('POST', '/repos/'.$pullRequestId->repositoryOwner.'/'.$pullRequestId->repositoryName.'/issues/'.$pullRequestId->pullRequestNumber.'/comments', [
+                'json' => ['body' => $comment],
+            ]);
+        }
+    }
 }
