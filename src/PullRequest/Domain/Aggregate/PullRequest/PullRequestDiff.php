@@ -50,7 +50,7 @@ class PullRequestDiff
                     if (preg_match('/^(@@ -(\d)+,\d+ \+\d+,\d+ @@).*$/', $line, $matches)) {
                         $currentFileHunks[$currentFileName][] = $matches[1];
                         $currentFileHunks[$currentFileName][] = '';
-                    } else {
+                    } elseif ($currentFileName !== null && !empty($currentFileHunks[$currentFileName])) {
                         $currentFileHunks[$currentFileName][array_key_last($currentFileHunks[$currentFileName])] .= $line."\n";
                     }
                 }
