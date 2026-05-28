@@ -23,7 +23,7 @@
         "symfony/twig-bundle": "~6.3.0",
         "symfony/validator": "~6.4.11",
         "symfony/webhook": "~6.3.0",
-        "symfony/yaml": "~6.3.0"
+        "symfony/yaml": "~6.4.40"
     },
     "require-dev": {
         "ergebnis/composer-normalize": "^2.39",
