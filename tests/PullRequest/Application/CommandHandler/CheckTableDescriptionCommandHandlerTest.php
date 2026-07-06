@@ -708,6 +708,33 @@ class CheckTableDescriptionCommandHandlerTest extends KernelTestCase
                 false,
                 ['develop', 'Feature'],
             ],
+            // Leading pipes are optional in GFM tables: the table renders fine on GitHub
+            // and every answer must still be extracted (see PrestaShop/PrestaShop#41964).
+            [
+                new PullRequestId(
+                    repositoryOwner: 'PrestaShop',
+                    repositoryName: 'PrestaShop',
+                    pullRequestNumber: 'fake'
+                ),
+                '
+                **Questions** | **Answers**
+                ------------- | -------------
+                Branch? | develop
+                Description? | Fake description
+                Type? | improvement
+                Category? | CO
+                BC breaks? | no
+                Deprecations? | no
+                How to test? | Fake how to test
+                UI Tests | Fake UI tests
+                Fixed issue or discussion? | Fixes #123
+                ',
+                [],
+                [],
+                false,
+                false,
+                ['develop', 'Improvement'],
+            ],
         ];
     }
 
