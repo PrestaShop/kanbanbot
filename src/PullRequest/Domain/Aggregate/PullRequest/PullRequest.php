@@ -108,6 +108,7 @@ class PullRequest
         // Remove some labels in labels list
         $this->labels = array_diff($this->labels, [
             'develop',
+            '9.2.x',
             '8.1.x',
             '8.2.x',
             '9.0.x',
