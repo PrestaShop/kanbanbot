@@ -8,7 +8,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 
 class PullRequestDescription
 {
-    public const TARGET_BRANCH_AVAILABLE = ['develop', '8.1.x', '8.2.x', '9.0.x', '9.1.x'];
+    public const TARGET_BRANCH_AVAILABLE = ['develop', '9.2.x', '8.1.x', '8.2.x', '9.0.x', '9.1.x'];
     public const TEMPLATE_DESCRIPTION = 'Please be specific when describing the PR. <br> Every detail helps: versions, browser/server configuration, specific module/theme, etc. Feel free to add more information below this table.';
     public const TYPES_AVAILABLE = ['bug fix', 'improvement', 'new feature', 'refacto'];
     public const CATEGORIES_AVAILABLE = ['FO', 'BO', 'CO', 'IN', 'WS', 'TE', 'LO', 'ME', 'PM'];
