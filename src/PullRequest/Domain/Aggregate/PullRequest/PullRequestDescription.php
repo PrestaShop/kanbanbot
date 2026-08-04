@@ -5,10 +5,11 @@ declare(strict_types=1);
 namespace App\PullRequest\Domain\Aggregate\PullRequest;
 
 use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Component\Validator\Context\ExecutionContextInterface;
 
 class PullRequestDescription
 {
-    public const TARGET_BRANCH_AVAILABLE = ['develop', '9.2.x', '8.1.x', '8.2.x', '9.0.x', '9.1.x'];
+    public const TARGET_BRANCH_AVAILABLE = ['develop', '9.2.x', '9.1.x', '8.2.x'];
     public const TEMPLATE_DESCRIPTION = 'Please be specific when describing the PR. <br> Every detail helps: versions, browser/server configuration, specific module/theme, etc. Feel free to add more information below this table.';
     public const TYPES_AVAILABLE = ['bug fix', 'improvement', 'new feature', 'refacto'];
     public const CATEGORIES_AVAILABLE = ['FO', 'BO', 'CO', 'IN', 'WS', 'TE', 'LO', 'ME', 'PM'];
@@ -20,7 +21,6 @@ class PullRequestDescription
     ) {
     }
 
-    #[Assert\NotBlank(message: 'The `branch` should be `develop`, `9.1.x`, `9.0.x` or `8.2.x`. ([Read explanation](https://devdocs.prestashop-project.org/9/contribute/contribution-guidelines/pull-requests/#branch))')]
     public function getBranch(): ?string
     {
         $branch = $this->extractWithRegex('Branch');
@@ -29,6 +29,35 @@ class PullRequestDescription
         }
 
         return null;
+    }
+
+    /**
+     * The available branches are listed in the error message, so it stays in sync with self::TARGET_BRANCH_AVAILABLE.
+     * A callback is needed here because an attribute argument can only be a constant expression.
+     */
+    #[Assert\Callback]
+    public function validateBranch(ExecutionContextInterface $context): void
+    {
+        if (null !== $this->getBranch()) {
+            return;
+        }
+
+        $context
+            ->buildViolation(self::getBranchErrorMessage())
+            ->atPath('branch')
+            ->addViolation();
+    }
+
+    public static function getBranchErrorMessage(): string
+    {
+        $branches = array_map(fn (string $branch) => sprintf('`%s`', $branch), self::TARGET_BRANCH_AVAILABLE);
+        $lastBranch = array_pop($branches);
+
+        return sprintf(
+            'The `branch` should be %s or %s. ([Read explanation](https://devdocs.prestashop-project.org/9/contribute/contribution-guidelines/pull-requests/#branch))',
+            implode(', ', $branches),
+            $lastBranch
+        );
     }
 
     #[Assert\NotBlank(message: 'The `description` shouldn\'t be empty. ([Read explanation](https://devdocs.prestashop-project.org/9/contribute/contribution-guidelines/pull-requests/#description))')]
