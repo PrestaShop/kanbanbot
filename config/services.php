@@ -30,6 +30,7 @@ return function (ContainerConfigurator $configurator) {
             'example-modules',
             'ps-docs-theme',
             'open-source',
+            'prestashop.github.io',
         ])
         ->set('labels.excluded', ['TE', 'E2E Tests'])
     ;
