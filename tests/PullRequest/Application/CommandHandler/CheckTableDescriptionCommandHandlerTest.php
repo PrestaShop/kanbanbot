@@ -204,12 +204,12 @@ class CheckTableDescriptionCommandHandlerTest extends KernelTestCase
                     repositoryName: 'PrestaShop',
                     pullRequestNumber: 'fake'
                 ),
-                '| Branch?           | 9.1.x',
+                '| Branch?           | 9.2.x',
                 [],
                 [PullRequestDescription::getBranchErrorMessage()],
                 false,
                 true,
-                ['9.1.x'],
+                ['9.2.x'],
             ],
             [
                 new PullRequestId(
