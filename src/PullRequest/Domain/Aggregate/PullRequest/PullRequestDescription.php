@@ -180,7 +180,10 @@ class PullRequestDescription
         return in_array($this->getType(), ['bug fix', 'new feature']) && !in_array($this->getCategory(), ['TE', 'ME', 'PM']);
     }
 
-    private function extractWithRegex(string $field, string $patternValue = '[^|]*'): string
+    // Leading pipes are optional in GFM tables, so the answer cell must stop at the end
+    // of the line: with `[^|]*` a row like "Branch? | develop" (no leading pipe on the
+    // next row) would capture "develop\nDescription?" and fail validation.
+    private function extractWithRegex(string $field, string $patternValue = '[^|\r\n]*'): string
     {
         $regex = sprintf('~(?:\|?\s*%s\??\s+\|\s*)(%s)\s*~', $field, $patternValue);
         preg_match($regex, $this->bodyContent, $matches);
