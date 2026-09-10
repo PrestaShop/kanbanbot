@@ -34,6 +34,72 @@ You can see some examples in the [src/Shared/Infrastructure/Factory/CommandFacto
 In this layer you can also add global github event exclusions. To do that you can create a new class which implements [App\Shared\Infrastructure\Factory\CommandFactory\ExclusionStrategyInterface.php](src/Shared/Infrastructure/Factory/CommandFactory/ExclusionStrategyInterface.php). You can see some examples in the [src/Shared/Infrastructure/Factory/CommandFactory/Strategy/Exclusion](src/Shared/Infrastructure/Factory/CommandFactory/Strategy/Exclusion) folder.
 2. The second layout contains the commands themselves. They are dispatched in several Bounded context like in [PullRequest](src/PullRequest/Application/CommandHandler) and in [PullRequestDashboard](src/PullRequestDashboard/Application/CommandHandler).
 
+## Triage agent
+
+A bounded context under `src/Triage` that proposes a severity for an issue,
+against the project's published [bug severity
+classification](https://build.prestashop-project.org/news/2019/severity-classification/).
+Groundwork for the spike in
+[PrestaShop/PrestaShop#42138](https://github.com/PrestaShop/PrestaShop/issues/42138).
+
+**It proposes and never decides.** Nothing here writes a label, a board field
+or a comment; a human accepts, corrects or ignores every verdict.
+
+### The rubric is the substance
+
+`src/Triage/Infrastructure/Resources/severity_system.md` reproduces the
+published classification verbatim, then adds what that page leaves open: how
+to read its "percentage of users" thresholds for a shop platform, the clauses
+that override the count, and how to judge whether a workaround is obvious. It
+also encodes the boundary the QA team draws in [how issues are
+sorted](https://www.prestashop-project.org/get-involved/report-issues/how-issues-are-sorted/):
+severity is proposed, priority never is.
+
+Three of its rules come from measurement rather than reasoning, and carry
+their numbers in the text:
+
+- **Narrowness of scope separates Major from Critical.** Naming a specific
+  module appears in 59% of Criticals but 76% of Majors.
+- **The symptom is not the severity.** An exception or a 500 appears in 31% of
+  Criticals and 34% of Majors, so it discriminates nothing. A rubric clause
+  built on it once produced 89% false positives.
+- **Security and data loss are the only markers that separate the classes**
+  (38% against 20%, and 40% against 25%).
+
+`severity_examples.md` holds worked examples mined from closed issues that
+maintainers labelled themselves.
+
+### Measuring it
+
+```bash
+php bin/console app:triage:calibrate --limit=20   # cheap smoke test
+php bin/console app:triage:calibrate              # the whole held-out set
+```
+
+Also `.github/workflows/triagecalibrate.yml`, **manual only** — run it when
+the rubric changes, not on a schedule. The split seed is fixed, so two runs
+are directly comparable and this doubles as a regression test on the prompt.
+
+There is no fine-tuning. The closed issues carrying exactly one severity
+label are split once, deterministically and stratified by class, into a pool
+the worked examples are mined from and a held-out set that is scored and never
+appears in a prompt. Mining from the held-out half would hand over the
+answers.
+
+Read the confusion matrix, not the headline percentage: the corpus is heavily
+imbalanced, so answering "Minor" to everything scores well and says nothing.
+The two numbers that matter are **Critical recall** — a Critical proposed as
+Minor is an issue the sheriff never sees ranked — and **Critical precision**,
+because a rubric reaches every Critical by calling everything Critical, and
+then people stop reading the section.
+
+### Configuration
+
+`ANTHROPIC_API_KEY` is an organisation secret already shared with this
+repository. Without it the classifier fails with a clear message rather than
+half-running. The calibration workflow authenticates its GitHub reads with the
+automatic per-run token, since everything it reads is public.
+
 ## Testing
 
 The whole application is tested. This widely avoids regressions and allows easy refactoring or library updating.
