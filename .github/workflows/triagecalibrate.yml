@@ -1,0 +1,81 @@
+# Scores the triage severity rubric against the labels maintainers actually
+# applied, so the agent's verdicts can be trusted - or not.
+#
+# Manual only. This is not a recurring job: run it when the rubric changes. The
+# split seed is fixed, so two runs are directly comparable and this doubles as
+# a regression test on the prompt.
+name: Triage Calibration
+
+on:
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: 'Score only the first N held-out issues. 0 scores all of them. The set is interleaved, so any prefix stays balanced across the four classes.'
+        required: false
+        default: '20'
+        type: string
+      repository:
+        description: 'Repository whose labelled history to score against'
+        required: false
+        default: 'PrestaShop/PrestaShop'
+        type: string
+
+jobs:
+  calibrate:
+    runs-on: ubuntu-latest
+    name: Triage Calibration
+    # The full set is a few hundred sequential calls, around 80 minutes. The
+    # default six hours would let a stuck run sit all morning.
+    timeout-minutes: 240
+    steps:
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+
+      - uses: actions/checkout@v4
+
+      - name: Get Composer Cache Directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+
+      - name: Cache Composer Directory
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - name: Composer Install
+        run: composer install --ansi --prefer-dist --no-interaction --no-progress
+
+      - name: Calibrate
+        env:
+          APP_ENV: prod
+          # The scoped github client authenticates with KANBANBOT_TOKEN, which
+          # the deployed app gets from its host and Actions does not have. The
+          # automatic per-run token is enough here: everything this command
+          # reads is public, and it lifts the search rate limit that an
+          # unauthenticated corpus fetch would hit immediately.
+          KANBANBOT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Organisation secret, already shared with this repository.
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          php bin/console app:triage:calibrate \
+            --repository="${{ inputs.repository }}" \
+            --limit="${{ inputs.limit }}"
+
+      - name: Publish the report
+        if: always()
+        run: |
+          if [ -f var/report/triage-calibration.md ]; then
+            cat var/report/triage-calibration.md >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload the report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: triage-calibration-${{ github.run_id }}
+          path: var/report/triage-calibration.md
+          if-no-files-found: ignore
