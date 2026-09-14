@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Triage\Infrastructure\Adapter;
 
 use App\Triage\Domain\Aggregate\Issue\Confidence;
+use App\Triage\Domain\Aggregate\Issue\IssueToClassify;
 use App\Triage\Domain\Aggregate\Issue\Severity;
 use App\Triage\Domain\Aggregate\Issue\TriagedIssue;
 use App\Triage\Domain\Exception\ClassificationFailedException;
@@ -29,9 +30,9 @@ final class InMemorySeverityClassifier implements SeverityClassifierInterface
     ) {
     }
 
-    public function classify(array $issue, array $duplicateCandidates = []): TriagedIssue
+    public function classify(IssueToClassify $issue, array $duplicateCandidates = []): TriagedIssue
     {
-        $number = $issue['number'];
+        $number = $issue->number;
 
         if (isset($this->failures[$number])) {
             throw new ClassificationFailedException($this->failures[$number]);
@@ -43,7 +44,7 @@ final class InMemorySeverityClassifier implements SeverityClassifierInterface
 
         return new TriagedIssue(
             number: $number,
-            title: $issue['title'],
+            title: $issue->title,
             severity: $this->verdicts[$number],
             confidence: Confidence::High,
             rationale: 'staged verdict',

@@ -8,6 +8,7 @@ use App\Triage\Application\Command\CalibrateRubricCommand;
 use App\Triage\Application\CommandHandler\CalibrateRubricCommandHandler;
 use App\Triage\Domain\Aggregate\Issue\CalibrationResult;
 use App\Triage\Domain\Aggregate\Issue\Confidence;
+use App\Triage\Domain\Aggregate\Issue\IssueToClassify;
 use App\Triage\Domain\Aggregate\Issue\Severity;
 use App\Triage\Domain\Aggregate\Issue\TriagedIssue;
 use App\Triage\Domain\Exception\NothingScoredException;
@@ -194,27 +195,27 @@ class CalibrateRubricCommandHandlerTest extends TestCase
         $seen = [];
         $classifier = new class($seen) implements SeverityClassifierInterface {
             /**
-             * @param array<int, array<string, mixed>> $seen
+             * @param array<int, IssueToClassify> $seen
              */
             public function __construct(private array &$seen)
             {
             }
 
             /**
-             * @return array<int, array<string, mixed>>
+             * @return array<int, IssueToClassify>
              */
             public function seen(): array
             {
                 return $this->seen;
             }
 
-            public function classify(array $issue, array $duplicateCandidates = []): TriagedIssue
+            public function classify(IssueToClassify $issue, array $duplicateCandidates = []): TriagedIssue
             {
                 $this->seen[] = $issue;
 
                 return new TriagedIssue(
-                    number: $issue['number'],
-                    title: $issue['title'],
+                    number: $issue->number,
+                    title: $issue->title,
                     severity: Severity::Minor,
                     confidence: Confidence::High,
                     rationale: 'recorded',
@@ -238,9 +239,14 @@ class CalibrateRubricCommandHandlerTest extends TestCase
 
         $this->assertNotEmpty($seen);
         foreach ($seen as $issue) {
-            $this->assertSame([], $issue['labels'], 'a severity label here would leak the ground truth');
-            $this->assertArrayNotHasKey('truth', $issue);
+            $this->assertSame([], $issue->labels, 'a severity label here would leak the ground truth');
         }
+        // The type is the other half of the guarantee: there is nowhere on it
+        // to put the label even by accident.
+        $this->assertSame(
+            ['number', 'title', 'body', 'labels'],
+            array_keys(get_object_vars($seen[0]))
+        );
     }
 
     public function testARunThatScoresNothingIsAFailureNotAnEmptyReport(): void
