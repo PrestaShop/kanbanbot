@@ -96,6 +96,57 @@ final class CalibrationResult
         return $column > 0 ? ($this->matrix[$level->value][$level->value] ?? 0) / $column : 0.0;
     }
 
+    /**
+     * A 95% interval around a rate, given how few items it was computed from.
+     *
+     * The point estimate on its own invites a comparison it cannot support.
+     * Critical precision is computed from however many Criticals the rubric
+     * proposed, often under a hundred, so a five-point move between two runs
+     * sits well inside the noise. Printing the interval next to the rate is
+     * what stops that move being read as a result.
+     *
+     * Wilson rather than the textbook normal interval, which misbehaves at
+     * the small counts and lopsided rates this corpus produces.
+     *
+     * @return array{0: float, 1: float} lower and upper bound
+     */
+    public function interval(int $successes, int $total): array
+    {
+        if ($total <= 0) {
+            return [0.0, 0.0];
+        }
+
+        $z = 1.96;
+        $p = $successes / $total;
+        $denominator = 1 + $z ** 2 / $total;
+        $centre = ($p + $z ** 2 / (2 * $total)) / $denominator;
+        $spread = $z / $denominator * sqrt($p * (1 - $p) / $total + $z ** 2 / (4 * $total ** 2));
+
+        return [max(0.0, $centre - $spread), min(1.0, $centre + $spread)];
+    }
+
+    /**
+     * @return array{0: float, 1: float}
+     */
+    public function recallInterval(Severity $level): array
+    {
+        return $this->interval(
+            $this->matrix[$level->value][$level->value] ?? 0,
+            array_sum($this->matrix[$level->value] ?? [])
+        );
+    }
+
+    /**
+     * @return array{0: float, 1: float}
+     */
+    public function precisionInterval(Severity $level): array
+    {
+        return $this->interval(
+            $this->matrix[$level->value][$level->value] ?? 0,
+            $this->proposedCount($level)
+        );
+    }
+
     public function proposedCount(Severity $level): int
     {
         $column = 0;
