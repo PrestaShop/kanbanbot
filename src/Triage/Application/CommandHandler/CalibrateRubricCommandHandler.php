@@ -88,9 +88,7 @@ final class CalibrateRubricCommandHandler
             matrix: $matrix,
             scored: $scored,
             failures: $failures,
-            estimatedCost: method_exists($this->classifier, 'estimatedCost')
-                ? $this->classifier->estimatedCost()
-                : 0.0,
+            estimatedCost: $this->classifier->estimatedCost(),
         );
     }
 
@@ -143,8 +141,7 @@ final class CalibrateRubricCommandHandler
             // Sorted before shuffling so the split never depends on the order
             // GitHub happened to return.
             usort($items, static fn (array $a, array $b): int => $a['number'] <=> $b['number']);
-            mt_srand(self::SPLIT_SEED);
-            shuffle($items);
+            $items = $this->seededShuffle($items);
 
             $take = min(self::EVAL_PER_CLASS, intdiv(count($items), 2));
             $byClass[$level->value] = array_slice($items, 0, $take);
@@ -165,5 +162,33 @@ final class CalibrateRubricCommandHandler
         }
 
         return [$pool, $held];
+    }
+
+    /**
+     * Fisher-Yates driven by a generator carried in a local variable.
+     *
+     * `shuffle()` would mean `mt_srand()`, which reseeds the process-wide
+     * generator and makes every later call to `rand`, `shuffle` or
+     * `array_rand` anywhere in the process depend on this method having run.
+     * A split is not worth that. The arithmetic is a plain linear congruential
+     * generator, fixed here rather than taken from the runtime so that the
+     * split does not move with the PHP version.
+     *
+     * @param array<int, LabelledIssue> $items
+     *
+     * @return array<int, LabelledIssue>
+     */
+    private function seededShuffle(array $items): array
+    {
+        $state = self::SPLIT_SEED;
+
+        for ($i = count($items) - 1; $i > 0; --$i) {
+            // glibc's constants; any full-period choice would do.
+            $state = (1103515245 * $state + 12345) % 2147483648;
+            $j = $state % ($i + 1);
+            [$items[$i], $items[$j]] = [$items[$j], $items[$i]];
+        }
+
+        return $items;
     }
 }

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Triage\Infrastructure\Adapter;
 
-use Anthropic\Client;
 use Anthropic\Core\Exceptions\APIConnectionException;
 use Anthropic\Core\Exceptions\APIStatusException;
 use Anthropic\Core\Exceptions\InternalServerException;
@@ -16,6 +15,7 @@ use App\Triage\Domain\Aggregate\Issue\Severity;
 use App\Triage\Domain\Aggregate\Issue\TriagedIssue;
 use App\Triage\Domain\Exception\ClassificationFailedException;
 use App\Triage\Domain\Gateway\SeverityClassifierInterface;
+use App\Triage\Infrastructure\Provider\AnthropicClientFactoryInterface;
 use App\Triage\Infrastructure\Provider\RubricProviderInterface;
 
 /**
@@ -42,9 +42,15 @@ final class AnthropicSeverityClassifier implements SeverityClassifierInterface
      */
     private const EFFORT = 'medium';
 
-    private const MAX_ATTEMPTS = 3;
-
-    private ?Client $client = null;
+    /**
+     * List prices per million tokens for self::MODEL. Cache reads bill at a
+     * tenth of the input rate, and writes at 1.25x on the default five-minute
+     * entry.
+     */
+    private const INPUT_PER_MTOK = 5.00;
+    private const OUTPUT_PER_MTOK = 25.00;
+    private const CACHE_WRITE_MULTIPLIER = 1.25;
+    private const CACHE_READ_MULTIPLIER = 0.1;
 
     /**
      * @var array{input: int, output: int, cacheWrite: int, cacheRead: int}
@@ -53,7 +59,7 @@ final class AnthropicSeverityClassifier implements SeverityClassifierInterface
 
     public function __construct(
         private readonly RubricProviderInterface $rubricProvider,
-        private readonly string $anthropicApiKey,
+        private readonly AnthropicClientFactoryInterface $clientFactory,
     ) {
     }
 
@@ -97,22 +103,13 @@ final class AnthropicSeverityClassifier implements SeverityClassifierInterface
         return $this->usage;
     }
 
-    /**
-     * Cost of the run so far at published list prices.
-     *
-     * Cache reads bill at a tenth of the input rate and writes at 1.25x, which
-     * is why a well-cached run costs far less than the raw input count suggests.
-     */
     public function estimatedCost(): float
     {
-        $inputPerMTok = 5.00;
-        $outputPerMTok = 25.00;
-
         return (
-            $this->usage['input'] * $inputPerMTok
-            + $this->usage['cacheWrite'] * $inputPerMTok * 1.25
-            + $this->usage['cacheRead'] * $inputPerMTok * 0.1
-            + $this->usage['output'] * $outputPerMTok
+            $this->usage['input'] * self::INPUT_PER_MTOK
+            + $this->usage['cacheWrite'] * self::INPUT_PER_MTOK * self::CACHE_WRITE_MULTIPLIER
+            + $this->usage['cacheRead'] * self::INPUT_PER_MTOK * self::CACHE_READ_MULTIPLIER
+            + $this->usage['output'] * self::OUTPUT_PER_MTOK
         ) / 1_000_000;
     }
 
@@ -121,63 +118,45 @@ final class AnthropicSeverityClassifier implements SeverityClassifierInterface
      */
     private function askClaude(string $userText): array
     {
-        $lastError = null;
-
-        for ($attempt = 0; $attempt < self::MAX_ATTEMPTS; ++$attempt) {
-            try {
-                $message = $this->client()->messages->create(
-                    maxTokens: self::MAX_TOKENS,
-                    messages: [['role' => 'user', 'content' => $userText]],
-                    model: self::MODEL,
-                    outputConfig: [
-                        'effort' => self::EFFORT,
-                        'format' => ['type' => 'json_schema', 'schema' => $this->rubricProvider->issueSchema()],
-                    ],
-                    system: [[
-                        'type' => 'text',
-                        'text' => $this->rubricProvider->severityRubric(),
-                        'cacheControl' => ['type' => 'ephemeral', 'ttl' => '1h'],
-                    ]],
-                    thinking: ['type' => 'adaptive'],
-                );
-            } catch (RateLimitException|APIConnectionException|InternalServerException $e) {
-                // Transient: throttling, a dropped connection, a 5xx.
-                $lastError = $e;
-                if ($attempt < self::MAX_ATTEMPTS - 1) {
-                    sleep(5 * (2 ** $attempt));
-                }
-
-                continue;
-            } catch (APIStatusException $e) {
-                // Anything else the API rejected is our bug - a malformed
-                // schema, a bad model id, a missing key - and retrying just
-                // repeats it. The message is carried through: a run that fails
-                // on every item has to say why.
-                throw new ClassificationFailedException('API rejected the request: '.$e->getMessage(), 0, $e);
-            }
-
-            if ('refusal' === $message->stopReason) {
-                throw new ClassificationFailedException('Model declined to answer this item');
-            }
-
-            $this->recordUsage($message);
-
-            return $this->extractJson($message);
+        try {
+            $message = $this->clientFactory->create()->messages->create(
+                maxTokens: self::MAX_TOKENS,
+                messages: [['role' => 'user', 'content' => $userText]],
+                model: self::MODEL,
+                outputConfig: [
+                    'effort' => self::EFFORT,
+                    'format' => ['type' => 'json_schema', 'schema' => $this->rubricProvider->issueSchema()],
+                ],
+                system: [[
+                    'type' => 'text',
+                    'text' => $this->rubricProvider->severityRubric(),
+                    // The default five-minute entry, not the hour: items are
+                    // classified back to back, so each read pushes the expiry
+                    // out and the entry never goes cold. The hour costs twice
+                    // as much to write and would buy nothing here.
+                    'cacheControl' => ['type' => 'ephemeral'],
+                ]],
+                thinking: ['type' => 'adaptive'],
+            );
+        } catch (RateLimitException|InternalServerException|APIConnectionException $e) {
+            // Transient, and the SDK has already retried with the backoff the
+            // response asked for. Reaching here means it kept failing.
+            throw new ClassificationFailedException('Gave up after the client exhausted its retries: '.$e->getMessage(), 0, $e);
+        } catch (APIStatusException $e) {
+            // Anything else the API rejected is our bug - a malformed schema,
+            // a bad model id, a missing key - and retrying just repeats it.
+            // The message is carried through: a run that fails on every item
+            // has to say why.
+            throw new ClassificationFailedException('API rejected the request: '.$e->getMessage(), 0, $e);
         }
 
-        throw new ClassificationFailedException(sprintf('Gave up after %d attempts: %s', self::MAX_ATTEMPTS, $lastError?->getMessage() ?? 'unknown error'));
-    }
-
-    private function client(): Client
-    {
-        if (null === $this->client) {
-            if ('' === $this->anthropicApiKey) {
-                throw new ClassificationFailedException('ANTHROPIC_API_KEY is not configured');
-            }
-            $this->client = new Client(apiKey: $this->anthropicApiKey);
+        if ('refusal' === $message->stopReason) {
+            throw new ClassificationFailedException('Model declined to answer this item');
         }
 
-        return $this->client;
+        $this->recordUsage($message);
+
+        return $this->extractJson($message);
     }
 
     private function recordUsage(Message $message): void

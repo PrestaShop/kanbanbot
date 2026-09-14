@@ -76,9 +76,9 @@ php bin/console app:triage:calibrate --limit=20   # cheap smoke test
 php bin/console app:triage:calibrate              # the whole held-out set
 ```
 
-Also `.github/workflows/triagecalibrate.yml`, **manual only** — run it when
-the rubric changes, not on a schedule. The split seed is fixed, so two runs
-are directly comparable and this doubles as a regression test on the prompt.
+Also `.github/workflows/triagecalibrate.yml`, **manual only**. Run it when the
+rubric changes, not on a schedule. The split seed is fixed, so two runs are
+directly comparable and this doubles as a regression test on the prompt.
 
 There is no fine-tuning. The closed issues carrying exactly one severity
 label are split once, deterministically and stratified by class, into a pool
@@ -88,8 +88,8 @@ answers.
 
 Read the confusion matrix, not the headline percentage: the corpus is heavily
 imbalanced, so answering "Minor" to everything scores well and says nothing.
-The two numbers that matter are **Critical recall** — a Critical proposed as
-Minor is an issue the sheriff never sees ranked — and **Critical precision**,
+The two numbers that matter are **Critical recall** (a Critical proposed as
+Minor is an issue the sheriff never sees ranked) and **Critical precision**,
 because a rubric reaches every Critical by calling everything Critical, and
 then people stop reading the section.
 
