@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Triage\Domain\Gateway;
 
+use App\Triage\Domain\Aggregate\Issue\IssueToClassify;
 use App\Triage\Domain\Aggregate\Issue\TriagedIssue;
 
 interface SeverityClassifierInterface
@@ -16,12 +17,11 @@ interface SeverityClassifierInterface
      * inventing issue numbers: it chooses from what it is handed, or returns
      * nothing.
      *
-     * @param array{number: int, title: string, body: string, labels: string[]} $issue
-     * @param array<int, array{number: int, title: string}>                     $duplicateCandidates
+     * @param array<int, array{number: int, title: string}> $duplicateCandidates
      *
      * @throws \App\Triage\Domain\Exception\ClassificationFailedException
      */
-    public function classify(array $issue, array $duplicateCandidates = []): TriagedIssue;
+    public function classify(IssueToClassify $issue, array $duplicateCandidates = []): TriagedIssue;
 
     /**
      * What the classifications made so far cost, at published list prices.

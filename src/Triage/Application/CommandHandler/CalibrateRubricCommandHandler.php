@@ -6,6 +6,7 @@ namespace App\Triage\Application\CommandHandler;
 
 use App\Triage\Application\Command\CalibrateRubricCommand;
 use App\Triage\Domain\Aggregate\Issue\CalibrationResult;
+use App\Triage\Domain\Aggregate\Issue\IssueToClassify;
 use App\Triage\Domain\Aggregate\Issue\Severity;
 use App\Triage\Domain\Exception\ClassificationFailedException;
 use App\Triage\Domain\Exception\NothingScoredException;
@@ -65,15 +66,14 @@ final class CalibrateRubricCommandHandler
 
         foreach ($heldOut as $issue) {
             try {
-                $verdict = $this->classifier->classify([
-                    'number' => $issue['number'],
-                    'title' => $issue['title'],
-                    // Deliberately bare: no labels, no milestone, no comments.
-                    // Anything maintainers added after triage would leak the
-                    // answer into the question.
-                    'body' => $issue['body'],
-                    'labels' => [],
-                ]);
+                // Deliberately bare: no labels, no milestone, no comments.
+                // Anything maintainers added after triage would leak the
+                // answer into the question.
+                $verdict = $this->classifier->classify(new IssueToClassify(
+                    number: $issue['number'],
+                    title: $issue['title'],
+                    body: $issue['body'],
+                ));
             } catch (ClassificationFailedException $e) {
                 // The message is kept, not just the tally. A partial failure
                 // is the realistic one, and "40 items failed" without saying
