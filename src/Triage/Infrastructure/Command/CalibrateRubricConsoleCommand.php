@@ -22,6 +22,8 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 )]
 class CalibrateRubricConsoleCommand extends Command
 {
+    private const DEFAULT_REPOSITORY = 'PrestaShop/PrestaShop';
+
     public function __construct(
         private readonly CalibrateRubricCommandHandler $handler,
         private readonly string $reportPath,
@@ -32,15 +34,15 @@ class CalibrateRubricConsoleCommand extends Command
     protected function configure(): void
     {
         $this
-            ->addOption('repository', null, InputOption::VALUE_OPTIONAL, '', 'PrestaShop/PrestaShop')
-            ->addOption('limit', null, InputOption::VALUE_OPTIONAL, 'Score only the first N held-out issues. The set is interleaved, so any prefix stays balanced across the four classes', 0)
+            ->addOption('repository', null, InputOption::VALUE_OPTIONAL, 'Repository whose labelled history to score against', self::DEFAULT_REPOSITORY)
+            ->addOption('limit', null, InputOption::VALUE_OPTIONAL, 'Score only the first N held-out issues. The set is interleaved, so any prefix stays balanced across the four classes', '0')
             ->addOption('report', null, InputOption::VALUE_OPTIONAL, 'Where to write the scored report');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
-        $repository = $this->stringOption($input, 'repository', 'PrestaShop/PrestaShop');
+        $repository = $this->stringOption($input, 'repository', self::DEFAULT_REPOSITORY);
 
         $io->text(sprintf('Fetching the labelled corpus from %s...', $repository));
 
@@ -67,13 +69,27 @@ class CalibrateRubricConsoleCommand extends Command
         $report = $this->render($result);
 
         $path = $this->stringOption($input, 'report', $this->reportPath);
-        if (!is_dir(dirname($path))) {
-            mkdir(dirname($path), 0o777, true);
-        }
-        file_put_contents($path, $report);
 
         $output->writeln('');
         $output->write($report);
+
+        // Checked rather than assumed. The run that produced this report costs
+        // real money and an hour of wall clock; announcing a file that is not
+        // there would send someone looking for it after the only copy has
+        // scrolled past.
+        $directory = dirname($path);
+        if (!is_dir($directory) && !mkdir($directory, 0o755, true) && !is_dir($directory)) {
+            $io->error('Could not create '.$directory.'. The report above was not saved.');
+
+            return Command::FAILURE;
+        }
+
+        if (false === file_put_contents($path, $report)) {
+            $io->error('Could not write '.$path.'. The report above was not saved.');
+
+            return Command::FAILURE;
+        }
+
         $io->success('Wrote '.$path);
 
         return Command::SUCCESS;

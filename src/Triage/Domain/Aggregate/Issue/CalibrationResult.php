@@ -77,10 +77,7 @@ final class CalibrationResult
      */
     public function precision(Severity $level): float
     {
-        $column = 0;
-        foreach (Severity::cases() as $truth) {
-            $column += $this->matrix[$truth->value][$level->value] ?? 0;
-        }
+        $column = $this->proposedCount($level);
 
         return $column > 0 ? ($this->matrix[$level->value][$level->value] ?? 0) / $column : 0.0;
     }

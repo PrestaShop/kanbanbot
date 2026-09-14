@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Triage\Infrastructure\Adapter;
 
+use App\Triage\Domain\Aggregate\Issue\Severity;
+use App\Triage\Domain\Exception\CorpusTruncatedException;
 use App\Triage\Domain\Gateway\IssueSearchInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
@@ -25,6 +27,22 @@ final class RestGithubIssueSearch implements IssueSearchInterface
     private const MAX_PAGES = 10;
 
     /**
+     * The ceiling those two imply, and the point past which a shard is
+     * silently incomplete.
+     */
+    private const RESULT_CAP = self::PER_PAGE * self::MAX_PAGES;
+
+    /**
+     * Search is capped at 30 requests a minute, well below the rest of the
+     * REST API. A full corpus fetch is a few hundred of them, so they are
+     * paced rather than left to the client's retry policy, which gives up
+     * after three attempts.
+     */
+    private const MIN_INTERVAL_MICROSECONDS = 2_100_000;
+
+    private ?float $lastRequestAt = null;
+
+    /**
      * Words that carry no signal when looking for a duplicate. Searching for
      * "the" and "when" returns the whole tracker.
      */
@@ -35,16 +53,23 @@ final class RestGithubIssueSearch implements IssueSearchInterface
         'there', 'this', 'was', 'were', 'when', 'with', 'you', 'your',
     ];
 
-    public function __construct(private HttpClientInterface $githubClient)
-    {
+    public function __construct(
+        private HttpClientInterface $githubClient,
+        /** Zero in tests, where there is no real endpoint to be polite to. */
+        private readonly int $minIntervalMicroseconds = self::MIN_INTERVAL_MICROSECONDS,
+    ) {
     }
 
     public function findLabelled(string $repository, string $label, int $year): array
     {
-        $others = array_diff(['Critical', 'Major', 'Minor', 'Trivial'], [$label]);
+        // Taken from the enum rather than restated: a fifth level added to
+        // Severity has to start excluding the other four here too, and a
+        // hardcoded list would keep working while quietly counting it twice.
         $exclusions = '';
-        foreach ($others as $other) {
-            $exclusions .= ' -label:'.$other;
+        foreach (Severity::cases() as $other) {
+            if ($other->value !== $label) {
+                $exclusions .= ' -label:'.$other->value;
+            }
         }
 
         $query = sprintf(
@@ -58,7 +83,10 @@ final class RestGithubIssueSearch implements IssueSearchInterface
 
         $found = [];
         for ($page = 1; $page <= self::MAX_PAGES; ++$page) {
-            $items = $this->search($query, $page);
+            [$items, $totalCount] = $this->search($query, $page);
+            if (1 === $page && $totalCount > self::RESULT_CAP) {
+                throw new CorpusTruncatedException($label, $year, $totalCount, self::RESULT_CAP);
+            }
             foreach ($items as $item) {
                 $number = $this->intOf($item, 'number');
                 if (null === $number) {
@@ -92,8 +120,10 @@ final class RestGithubIssueSearch implements IssueSearchInterface
             implode(' ', $keywords)
         );
 
+        [$items] = $this->search($query, 1);
+
         $candidates = [];
-        foreach ($this->search($query, 1) as $item) {
+        foreach ($items as $item) {
             $number = $this->intOf($item, 'number');
             if (null === $number || $number === $excludeNumber) {
                 continue;
@@ -128,10 +158,12 @@ final class RestGithubIssueSearch implements IssueSearchInterface
     }
 
     /**
-     * @return array<int, array<string, mixed>>
+     * @return array{0: array<int, array<string, mixed>>, 1: int}
      */
     private function search(string $query, int $page): array
     {
+        $this->pace();
+
         $response = $this->githubClient->request('GET', '/search/issues', [
             'query' => [
                 'q' => $query,
@@ -141,8 +173,31 @@ final class RestGithubIssueSearch implements IssueSearchInterface
         ])->toArray();
 
         $items = $response['items'] ?? [];
+        $totalCount = $response['total_count'] ?? 0;
 
-        return is_array($items) ? $items : [];
+        return [
+            is_array($items) ? $items : [],
+            is_int($totalCount) ? $totalCount : 0,
+        ];
+    }
+
+    /**
+     * Holds the configured gap between two search requests.
+     */
+    private function pace(): void
+    {
+        if ($this->minIntervalMicroseconds <= 0) {
+            return;
+        }
+
+        if (null !== $this->lastRequestAt) {
+            $elapsed = (int) ((microtime(true) - $this->lastRequestAt) * 1_000_000);
+            if ($elapsed < $this->minIntervalMicroseconds) {
+                usleep($this->minIntervalMicroseconds - $elapsed);
+            }
+        }
+
+        $this->lastRequestAt = microtime(true);
     }
 
     /**

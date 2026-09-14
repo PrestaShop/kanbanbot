@@ -49,4 +49,12 @@ final class InMemorySeverityClassifier implements SeverityClassifierInterface
             rationale: 'staged verdict',
         );
     }
+
+    /**
+     * Nothing is sent anywhere, so nothing is spent.
+     */
+    public function estimatedCost(): float
+    {
+        return 0.0;
+    }
 }

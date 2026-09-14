@@ -14,6 +14,8 @@ use App\Triage\Domain\Gateway\IssueSearchInterface;
 use App\Triage\Domain\Gateway\SeverityClassifierInterface;
 use App\Triage\Infrastructure\Adapter\AnthropicSeverityClassifier;
 use App\Triage\Infrastructure\Adapter\RestGithubIssueSearch;
+use App\Triage\Infrastructure\Provider\AnthropicClientFactoryInterface;
+use App\Triage\Infrastructure\Provider\ApiKeyAnthropicClientFactory;
 use App\Triage\Infrastructure\Provider\FileRubricProvider;
 use App\Triage\Infrastructure\Provider\RubricProviderInterface;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
@@ -81,6 +83,7 @@ return function (ContainerConfigurator $configurator) {
     $services->alias(SeverityClassifierInterface::class, AnthropicSeverityClassifier::class);
     $services->alias(IssueSearchInterface::class, RestGithubIssueSearch::class);
     $services->alias(RubricProviderInterface::class, FileRubricProvider::class);
+    $services->alias(AnthropicClientFactoryInterface::class, ApiKeyAnthropicClientFactory::class);
     $services->set(CommandFactory::class)
         ->args([
             tagged_iterator('app.shared.exclusion_strategy'),

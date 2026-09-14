@@ -20,6 +20,9 @@ on:
         default: 'PrestaShop/PrestaShop'
         type: string
 
+permissions:
+  contents: read
+
 jobs:
   calibrate:
     runs-on: ubuntu-latest
@@ -60,10 +63,15 @@ jobs:
           KANBANBOT_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Organisation secret, already shared with this repository.
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Passed through the environment rather than interpolated into the
+          # script: `${{ }}` is substituted before the shell parses the line,
+          # so an input containing shell syntax would run as part of it.
+          REPOSITORY: ${{ inputs.repository }}
+          LIMIT: ${{ inputs.limit }}
         run: |
           php bin/console app:triage:calibrate \
-            --repository="${{ inputs.repository }}" \
-            --limit="${{ inputs.limit }}"
+            --repository="$REPOSITORY" \
+            --limit="$LIMIT"
 
       - name: Publish the report
         if: always()
