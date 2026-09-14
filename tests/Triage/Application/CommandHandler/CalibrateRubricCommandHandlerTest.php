@@ -6,6 +6,7 @@ namespace App\Tests\Triage\Application\CommandHandler;
 
 use App\Triage\Application\Command\CalibrateRubricCommand;
 use App\Triage\Application\CommandHandler\CalibrateRubricCommandHandler;
+use App\Triage\Domain\Aggregate\Issue\CalibrationResult;
 use App\Triage\Domain\Aggregate\Issue\Confidence;
 use App\Triage\Domain\Aggregate\Issue\Severity;
 use App\Triage\Domain\Aggregate\Issue\TriagedIssue;
@@ -257,7 +258,7 @@ class CalibrateRubricCommandHandlerTest extends TestCase
      * @param array<int, array{number: int, title: string, body: string, truth: string}> $corpus
      * @param array<int, Severity>                                                       $verdicts
      */
-    private function handle(array $corpus, array $verdicts, int $limit = 0): \App\Triage\Domain\Aggregate\Issue\CalibrationResult
+    private function handle(array $corpus, array $verdicts, int $limit = 0): CalibrationResult
     {
         $handler = new CalibrateRubricCommandHandler(
             new InMemoryIssueSearch($corpus),
@@ -265,5 +266,45 @@ class CalibrateRubricCommandHandlerTest extends TestCase
         );
 
         return $handler(new CalibrateRubricCommand(repository: 'x/y', limit: $limit));
+    }
+
+    public function testAnIntervalWidensAsTheCountShrinks(): void
+    {
+        // The point of printing it: 3 of 4 and 300 of 400 are both 75%, and
+        // only one of them says anything.
+        $result = new CalibrationResult(matrix: [], scored: 0, failureReasons: [], estimatedCost: 0.0);
+
+        [$narrowLow, $narrowHigh] = $result->interval(300, 400);
+        [$wideLow, $wideHigh] = $result->interval(3, 4);
+
+        $this->assertGreaterThan($narrowHigh - $narrowLow, $wideHigh - $wideLow);
+        $this->assertLessThan(0.75, $narrowLow);
+        $this->assertGreaterThan(0.75, $narrowHigh);
+    }
+
+    public function testAnIntervalOnNoObservationsIsEmptyRatherThanDividingByZero(): void
+    {
+        $result = new CalibrationResult(matrix: [], scored: 0, failureReasons: [], estimatedCost: 0.0);
+
+        $this->assertSame([0.0, 0.0], $result->interval(0, 0));
+    }
+
+    public function testTheIntervalBracketsTheRateItDescribes(): void
+    {
+        $corpus = self::corpus(4);
+        $verdicts = [];
+        foreach ($corpus as $issue) {
+            $verdicts[$issue['number']] = Severity::from($issue['truth']);
+        }
+
+        $result = $this->handle($corpus, $verdicts);
+
+        foreach (Severity::cases() as $level) {
+            [$low, $high] = $result->precisionInterval($level);
+            $this->assertGreaterThanOrEqual($low, $result->precision($level));
+            $this->assertLessThanOrEqual($high, $result->precision($level));
+            $this->assertGreaterThanOrEqual(0.0, $low);
+            $this->assertLessThanOrEqual(1.0, $high);
+        }
     }
 }

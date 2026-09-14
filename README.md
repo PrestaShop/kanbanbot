@@ -72,8 +72,9 @@ maintainers labelled themselves.
 ### Measuring it
 
 ```bash
-php bin/console app:triage:calibrate --limit=20   # cheap smoke test
-php bin/console app:triage:calibrate              # the whole held-out set
+php bin/console app:triage:calibrate --limit=20              # cheap smoke test
+php bin/console app:triage:calibrate                         # the whole held-out set
+php bin/console app:triage:calibrate --limit=40 --repeat=3   # how much of a move is noise
 ```
 
 Also `.github/workflows/triagecalibrate.yml`, **manual only**. Run it when the
@@ -85,6 +86,14 @@ label are split once, deterministically and stratified by class, into a pool
 the worked examples are mined from and a held-out set that is scored and never
 appears in a prompt. Mining from the held-out half would hand over the
 answers.
+
+Read the intervals, not the point estimates. Each rate is computed from a few
+dozen items, so the 95% intervals the report prints are wide, and two rubrics
+whose intervals overlap have not been shown to differ however far apart their
+headline numbers look. Those intervals cover sampling error on the held-out
+set only. Inference is not deterministic either, which is what `--repeat`
+measures: the same rubric on the same items, several times, so a move after an
+edit can be weighed against the movement that happens with nothing changed.
 
 Read the confusion matrix, not the headline percentage: the corpus is heavily
 imbalanced, so answering "Minor" to everything scores well and says nothing.

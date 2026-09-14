@@ -19,6 +19,11 @@ on:
         required: false
         default: 'PrestaShop/PrestaShop'
         type: string
+      repeat:
+        description: 'Score the held-out set this many times and report the spread between runs. Inference is not deterministic, so this is what says whether a move between two rubrics is a result or noise. Multiplies the cost.'
+        required: false
+        default: '1'
+        type: string
 
 permissions:
   contents: read
@@ -68,10 +73,12 @@ jobs:
           # so an input containing shell syntax would run as part of it.
           REPOSITORY: ${{ inputs.repository }}
           LIMIT: ${{ inputs.limit }}
+          REPEAT: ${{ inputs.repeat }}
         run: |
           php bin/console app:triage:calibrate \
             --repository="$REPOSITORY" \
-            --limit="$LIMIT"
+            --limit="$LIMIT" \
+            --repeat="$REPEAT"
 
       - name: Publish the report
         if: always()
