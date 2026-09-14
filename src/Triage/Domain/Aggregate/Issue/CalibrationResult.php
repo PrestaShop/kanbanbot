@@ -15,14 +15,28 @@ namespace App\Triage\Domain\Aggregate\Issue;
 final class CalibrationResult
 {
     /**
-     * @param array<string, array<string, int>> $matrix truth => proposal => count
+     * @param array<string, array<string, int>> $matrix         truth => proposal => count
+     * @param array<string, int>                $failureReasons message => how many items it happened to
      */
     public function __construct(
         public readonly array $matrix,
         public readonly int $scored,
-        public readonly int $failures,
+        public readonly array $failureReasons,
         public readonly float $estimatedCost,
     ) {
+    }
+
+    /**
+     * Items the classifier could not answer for.
+     *
+     * Grouped by message rather than counted, because the count alone is the
+     * one thing that cannot be acted on. Forty failures reading "API rejected
+     * the request: maxItems is not supported" is a schema to fix; forty
+     * reading "the client exhausted its retries" is a rate limit to pace.
+     */
+    public function failures(): int
+    {
+        return array_sum($this->failureReasons);
     }
 
     public function exactAgreement(): int
