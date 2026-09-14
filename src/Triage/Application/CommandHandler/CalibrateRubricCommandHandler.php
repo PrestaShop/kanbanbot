@@ -9,8 +9,10 @@ use App\Triage\Domain\Aggregate\Issue\CalibrationResult;
 use App\Triage\Domain\Aggregate\Issue\Severity;
 use App\Triage\Domain\Exception\ClassificationFailedException;
 use App\Triage\Domain\Exception\NothingScoredException;
+use App\Triage\Domain\Gateway\CalibrationProgressInterface;
 use App\Triage\Domain\Gateway\IssueSearchInterface;
 use App\Triage\Domain\Gateway\SeverityClassifierInterface;
+use App\Triage\Infrastructure\Adapter\SilentCalibrationProgress;
 
 /**
  * @phpstan-import-type LabelledIssue from IssueSearchInterface
@@ -36,8 +38,10 @@ final class CalibrateRubricCommandHandler
     ) {
     }
 
-    public function __invoke(CalibrateRubricCommand $command): CalibrationResult
+    public function __invoke(CalibrateRubricCommand $command, ?CalibrationProgressInterface $progress = null): CalibrationResult
     {
+        $progress ??= new SilentCalibrationProgress();
+
         $corpus = $this->fetchCorpus($command);
         [, $heldOut] = $this->split($corpus);
 
@@ -54,7 +58,10 @@ final class CalibrateRubricCommandHandler
         }
 
         $scored = 0;
-        $failures = 0;
+        /** @var array<string, int> $failureReasons */
+        $failureReasons = [];
+
+        $progress->start(count($heldOut));
 
         foreach ($heldOut as $issue) {
             try {
@@ -67,27 +74,35 @@ final class CalibrateRubricCommandHandler
                     'body' => $issue['body'],
                     'labels' => [],
                 ]);
-            } catch (ClassificationFailedException) {
-                ++$failures;
+            } catch (ClassificationFailedException $e) {
+                // The message is kept, not just the tally. A partial failure
+                // is the realistic one, and "40 items failed" without saying
+                // how is the one report nobody can act on.
+                $reason = $e->getMessage();
+                $failureReasons[$reason] = ($failureReasons[$reason] ?? 0) + 1;
 
                 continue;
+            } finally {
+                $progress->advance();
             }
 
             ++$matrix[$issue['truth']][$verdict->severity->value];
             ++$scored;
         }
 
+        $progress->finish();
+
         // An empty corpus and a run where every call failed look identical
         // from the outside, and must not: a scheduled job that reports success
         // while the agent is broken is how it stays broken.
-        if (0 === $scored && $failures > 0) {
-            throw new NothingScoredException($failures);
+        if (0 === $scored && [] !== $failureReasons) {
+            throw new NothingScoredException(array_sum($failureReasons), array_keys($failureReasons));
         }
 
         return new CalibrationResult(
             matrix: $matrix,
             scored: $scored,
-            failures: $failures,
+            failureReasons: $failureReasons,
             estimatedCost: $this->classifier->estimatedCost(),
         );
     }

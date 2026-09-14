@@ -47,10 +47,13 @@ class CalibrateRubricConsoleCommand extends Command
         $io->text(sprintf('Fetching the labelled corpus from %s...', $repository));
 
         try {
-            $result = ($this->handler)(new CalibrateRubricCommand(
-                repository: $repository,
-                limit: (int) $this->stringOption($input, 'limit', '0'),
-            ));
+            $result = ($this->handler)(
+                new CalibrateRubricCommand(
+                    repository: $repository,
+                    limit: (int) $this->stringOption($input, 'limit', '0'),
+                ),
+                new ConsoleCalibrationProgress($io),
+            );
         } catch (NothingScoredException $e) {
             // Distinguished from an empty corpus on purpose: a job that goes
             // green while every call is failing is how a broken agent stays
@@ -138,8 +141,15 @@ class CalibrateRubricConsoleCommand extends Command
             ),
         ];
 
-        if ($r->failures > 0) {
-            $lines[] = sprintf('- Failed to classify: %d', $r->failures);
+        if ($r->failures() > 0) {
+            $lines[] = sprintf('- Failed to classify: %d', $r->failures());
+            // Listed, not just counted. The reason is what turns a number in
+            // a report into something somebody can fix.
+            $failureReasons = $r->failureReasons;
+            arsort($failureReasons);
+            foreach ($failureReasons as $reason => $count) {
+                $lines[] = sprintf('  - %d x %s', $count, $reason);
+            }
         }
         $lines[] = sprintf('- Estimated cost of this run: $%.2f', $r->estimatedCost);
         $lines[] = '';
