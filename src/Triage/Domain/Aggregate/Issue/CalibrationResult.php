@@ -23,6 +23,7 @@ final class CalibrationResult
         public readonly int $scored,
         public readonly array $failureReasons,
         public readonly float $estimatedCost,
+        public readonly float $cachedInputShare = 0.0,
     ) {
     }
 

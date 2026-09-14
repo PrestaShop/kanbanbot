@@ -116,6 +116,15 @@ class AnthropicSeverityClassifierTest extends TestCase
         // $5 input + $25 output + $6.25 cache write (1.25x on the five-minute
         // entry the adapter asks for) + $0.50 cache read.
         $this->assertEqualsWithDelta(36.75, $classifier->estimatedCost(), 0.001);
+
+        // One third of the input tokens came back from cache. This is the
+        // number any argument for the Batch API has to beat.
+        $this->assertEqualsWithDelta(1 / 3, $classifier->cachedInputShare(), 0.001);
+    }
+
+    public function testCachedShareIsZeroBeforeAnythingIsSent(): void
+    {
+        $this->assertSame(0.0, $this->classifierAnswering([])->cachedInputShare());
     }
 
     public function testARefusalIsNotMistakenForAVerdict(): void

@@ -57,4 +57,9 @@ final class InMemorySeverityClassifier implements SeverityClassifierInterface
     {
         return 0.0;
     }
+
+    public function cachedInputShare(): float
+    {
+        return 0.0;
+    }
 }

@@ -48,7 +48,12 @@ class CalibrateRubricConsoleCommand extends Command
         $io->text(sprintf('Fetching the labelled corpus from %s...', $repository));
 
         $repeat = max(1, (int) $this->stringOption($input, 'repeat', '1'));
+        $reportPath = $this->stringOption($input, 'report', $this->reportPath);
         $runs = [];
+
+        if (!$this->ensureDirectory(dirname($reportPath))) {
+            $io->warning('Could not create '.dirname($reportPath).'. Running without a checkpoint.');
+        }
 
         try {
             for ($run = 1; $run <= $repeat; ++$run) {
@@ -60,7 +65,7 @@ class CalibrateRubricConsoleCommand extends Command
                         repository: $repository,
                         limit: (int) $this->stringOption($input, 'limit', '0'),
                     ),
-                    new ConsoleCalibrationProgress($io),
+                    new ConsoleCalibrationProgress($io, $this->checkpointPath($reportPath, $run)),
                 );
             }
         } catch (NothingScoredException $e) {
@@ -82,8 +87,6 @@ class CalibrateRubricConsoleCommand extends Command
 
         $report = $this->render($result).$this->renderSpread($runs);
 
-        $path = $this->stringOption($input, 'report', $this->reportPath);
-
         $output->writeln('');
         $output->write($report);
 
@@ -91,20 +94,19 @@ class CalibrateRubricConsoleCommand extends Command
         // real money and an hour of wall clock; announcing a file that is not
         // there would send someone looking for it after the only copy has
         // scrolled past.
-        $directory = dirname($path);
-        if (!is_dir($directory) && !mkdir($directory, 0o755, true) && !is_dir($directory)) {
-            $io->error('Could not create '.$directory.'. The report above was not saved.');
+        if (!$this->ensureDirectory(dirname($reportPath))) {
+            $io->error('Could not create '.dirname($reportPath).'. The report above was not saved.');
 
             return Command::FAILURE;
         }
 
-        if (false === file_put_contents($path, $report)) {
-            $io->error('Could not write '.$path.'. The report above was not saved.');
+        if (false === file_put_contents($reportPath, $report)) {
+            $io->error('Could not write '.$reportPath.'. The report above was not saved.');
 
             return Command::FAILURE;
         }
 
-        $io->success('Wrote '.$path);
+        $io->success('Wrote '.$reportPath);
 
         return Command::SUCCESS;
     }
@@ -149,6 +151,19 @@ class CalibrateRubricConsoleCommand extends Command
         $lines[] = '';
 
         return implode(PHP_EOL, $lines);
+    }
+
+    private function ensureDirectory(string $directory): bool
+    {
+        return is_dir($directory) || mkdir($directory, 0o755, true) || is_dir($directory);
+    }
+
+    /**
+     * Where the verdicts are written down while the run is still going.
+     */
+    private function checkpointPath(string $reportPath, int $run): string
+    {
+        return preg_replace('/\.md$/', '', $reportPath).sprintf('.run%d.jsonl', $run);
     }
 
     /**
@@ -205,6 +220,11 @@ class CalibrateRubricConsoleCommand extends Command
             }
         }
         $lines[] = sprintf('- Estimated cost of this run: $%.2f', $r->estimatedCost);
+        $lines[] = sprintf(
+            '- Input served from cache: %.0f%%. The rubric is several times the size of the '
+            .'report it is applied to, so this is what decides the figure above.',
+            $r->cachedInputShare * 100
+        );
         $lines[] = '';
 
         $lines[] = '## Confusion matrix';

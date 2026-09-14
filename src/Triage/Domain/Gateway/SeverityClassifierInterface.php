@@ -32,4 +32,15 @@ interface SeverityClassifierInterface
      * one. An implementation that spends nothing returns 0.0.
      */
     public function estimatedCost(): float;
+
+    /**
+     * The share of input tokens that were served from cache, 0 to 1.
+     *
+     * The rubric is several times the size of the report it is applied to, so
+     * this number decides what a run costs. It is also what any argument about
+     * moving to the Batch API has to be settled against: the batch discount is
+     * a flat 50%, and it is only a saving if it beats what caching is already
+     * doing here. An implementation that sends nothing returns 0.0.
+     */
+    public function cachedInputShare(): float;
 }

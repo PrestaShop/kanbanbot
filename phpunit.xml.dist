@@ -19,6 +19,7 @@
       <directory>tests/PullRequest/Infrastructure/Adapter</directory>
       <directory>tests/PullRequestDashboard/Infrastructure/Adapter</directory>
       <directory>tests/Triage/Infrastructure/Adapter</directory>
+      <directory>tests/Triage/Infrastructure/Command</directory>
       <directory>tests/Triage/Infrastructure/Provider</directory>
     </testsuite>
     <testsuite name="endtoend_tests">
