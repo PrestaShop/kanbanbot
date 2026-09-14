@@ -80,14 +80,14 @@ final class CalibrateRubricCommandHandler
                 // how is the one report nobody can act on.
                 $reason = $e->getMessage();
                 $failureReasons[$reason] = ($failureReasons[$reason] ?? 0) + 1;
+                $progress->failed($issue['number'], $reason);
 
                 continue;
-            } finally {
-                $progress->advance();
             }
 
             ++$matrix[$issue['truth']][$verdict->severity->value];
             ++$scored;
+            $progress->scored($issue['number'], $issue['truth'], $verdict->severity);
         }
 
         $progress->finish();
@@ -104,6 +104,7 @@ final class CalibrateRubricCommandHandler
             scored: $scored,
             failureReasons: $failureReasons,
             estimatedCost: $this->classifier->estimatedCost(),
+            cachedInputShare: $this->classifier->cachedInputShare(),
         );
     }
 

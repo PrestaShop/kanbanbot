@@ -129,6 +129,13 @@ final class AnthropicSeverityClassifier implements SeverityClassifierInterface
         ) / 1_000_000;
     }
 
+    public function cachedInputShare(): float
+    {
+        $total = $this->usage['input'] + $this->usage['cacheWrite'] + $this->usage['cacheRead'];
+
+        return $total > 0 ? $this->usage['cacheRead'] / $total : 0.0;
+    }
+
     /**
      * @return array<string, mixed>
      */

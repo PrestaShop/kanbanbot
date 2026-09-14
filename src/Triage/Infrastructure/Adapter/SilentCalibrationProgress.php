@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace App\Triage\Infrastructure\Adapter;
 
+use App\Triage\Domain\Aggregate\Issue\Severity;
 use App\Triage\Domain\Gateway\CalibrationProgressInterface;
 
 /**
- * Says nothing, for callers that have nowhere to say it.
+ * Says nothing and remembers nothing, for callers that want neither.
  */
 final class SilentCalibrationProgress implements CalibrationProgressInterface
 {
@@ -15,7 +16,11 @@ final class SilentCalibrationProgress implements CalibrationProgressInterface
     {
     }
 
-    public function advance(): void
+    public function scored(int $number, string $truth, Severity $proposed): void
+    {
+    }
+
+    public function failed(int $number, string $reason): void
     {
     }
 

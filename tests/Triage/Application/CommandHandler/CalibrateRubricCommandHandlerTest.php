@@ -225,6 +225,11 @@ class CalibrateRubricCommandHandlerTest extends TestCase
             {
                 return 0.0;
             }
+
+            public function cachedInputShare(): float
+            {
+                return 0.0;
+            }
         };
 
         (new CalibrateRubricCommandHandler(new InMemoryIssueSearch(self::corpus(4)), $classifier))(

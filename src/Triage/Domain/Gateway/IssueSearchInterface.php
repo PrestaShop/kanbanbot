@@ -18,6 +18,11 @@ interface IssueSearchInterface
      * class balance wrong.
      *
      * @return array<int, LabelledIssue>
+     *
+     * @throws \App\Triage\Domain\Exception\CorpusTruncatedException when a shard holds
+     *                                                               more than search will
+     *                                                               return, which makes the
+     *                                                               class balance wrong
      */
     public function findLabelled(string $repository, string $label, int $year): array;
 

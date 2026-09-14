@@ -54,7 +54,7 @@ final class RestGithubIssueSearch implements IssueSearchInterface
     ];
 
     public function __construct(
-        private HttpClientInterface $githubClient,
+        private readonly HttpClientInterface $githubClient,
         /** Zero in tests, where there is no real endpoint to be polite to. */
         private readonly int $minIntervalMicroseconds = self::MIN_INTERVAL_MICROSECONDS,
     ) {
