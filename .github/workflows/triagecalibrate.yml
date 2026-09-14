@@ -1,9 +1,11 @@
 # Scores the triage severity rubric against the labels maintainers actually
 # applied, so the agent's verdicts can be trusted - or not.
 #
-# Manual only. This is not a recurring job: run it when the rubric changes. The
-# split seed is fixed, so two runs are directly comparable and this doubles as
-# a regression test on the prompt.
+# Manual only. This is not a recurring job: run it when the rubric changes.
+#
+# The split seed is fixed, so two runs score the same items. Their answers are
+# not fixed: read the intervals the report prints beside each rate, and use
+# `repeat` to see how far a rate moves with nothing changed at all.
 name: Triage Calibration
 
 on:
