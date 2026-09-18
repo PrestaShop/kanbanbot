@@ -157,6 +157,22 @@ class AnthropicSeverityClassifierTest extends TestCase
         $classifier->classify(self::issue());
     }
 
+    public function testAVerdictOutsideTheEnumsFailsTheItemRatherThanTheRun(): void
+    {
+        // The schema constrains both fields, so reaching this means the schema
+        // and the enums have drifted apart. It still has to arrive as one
+        // failed item: a run of a few hundred paid calls cannot end on the one
+        // that tripped it.
+        $classifier = $this->classifierAnswering([
+            $this->verdict(['confidence' => 'Low']),
+        ]);
+
+        $this->expectException(ClassificationFailedException::class);
+        $this->expectExceptionMessage('#4242 is out of range');
+
+        $classifier->classify(self::issue());
+    }
+
     public function testAResponseCarryingNoJsonFails(): void
     {
         $classifier = $this->classifierAnswering([

@@ -15,6 +15,8 @@ use App\Triage\Domain\Aggregate\Issue\IssueToClassify;
 use App\Triage\Domain\Aggregate\Issue\Severity;
 use App\Triage\Domain\Aggregate\Issue\TriagedIssue;
 use App\Triage\Domain\Exception\ClassificationFailedException;
+use App\Triage\Domain\Exception\UnknownConfidenceException;
+use App\Triage\Domain\Exception\UnknownSeverityException;
 use App\Triage\Domain\Gateway\SeverityClassifierInterface;
 use App\Triage\Infrastructure\Provider\AnthropicClientFactoryInterface;
 use App\Triage\Infrastructure\Provider\RubricProviderInterface;
@@ -97,11 +99,23 @@ final class AnthropicSeverityClassifier implements SeverityClassifierInterface
             static fn ($n): bool => is_int($n)
         ));
 
+        try {
+            $severity = Severity::fromName($strings['severity']);
+            $confidence = Confidence::fromName($strings['confidence']);
+        } catch (UnknownConfidenceException|UnknownSeverityException $e) {
+            // The schema constrains both to an enum, so this is unreachable
+            // while the schema and these two enums say the same thing. The day
+            // they drift apart it is still one bad item, not a bad run: an
+            // uncaught exception here would end a paid hour at whichever item
+            // happened to trip it and leave the other few hundred unscored.
+            throw new ClassificationFailedException(sprintf('Verdict for #%d is out of range: %s', $issue->number, $e->getMessage()), 0, $e);
+        }
+
         return new TriagedIssue(
             number: $issue->number,
             title: $issue->title,
-            severity: Severity::fromName($strings['severity']),
-            confidence: Confidence::fromName($strings['confidence']),
+            severity: $severity,
+            confidence: $confidence,
             rationale: $strings['rationale'],
             securitySuspicion: (bool) ($verdict['security_suspicion'] ?? false),
             looksLikeRegression: (bool) ($verdict['looks_like_regression'] ?? false),
