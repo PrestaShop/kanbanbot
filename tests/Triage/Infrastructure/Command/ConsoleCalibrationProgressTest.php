@@ -42,15 +42,41 @@ class ConsoleCalibrationProgressTest extends TestCase
 
         $lines = array_filter(explode("\n", (string) file_get_contents($path)));
 
-        $this->assertCount(2, $lines, 'written as they arrive, not flushed at the end');
+        $this->assertCount(3, $lines, 'written as they arrive, not flushed at the end');
+        $this->assertSame(['run_started', 'items'], array_keys((array) json_decode($lines[0], true)), 'the run header comes first');
         $this->assertSame(
             ['number' => 11, 'truth' => 'Critical', 'proposed' => 'Major'],
-            json_decode($lines[0], true)
+            json_decode($lines[1], true)
         );
         $this->assertSame(
             ['number' => 12, 'failed' => 'API rejected the request'],
-            json_decode($lines[1], true)
+            json_decode($lines[2], true)
         );
+    }
+
+    public function testASecondRunIsKeptApartFromTheOneBeforeIt(): void
+    {
+        // Two invocations share a checkpoint path, and the second must not
+        // erase what the first paid for. They are told apart by their headers:
+        // without them the same issue number appears twice, with two verdicts
+        // and nothing saying which run each belongs to.
+        $path = $this->directory.'/run.jsonl';
+
+        $first = $this->progress($path);
+        $first->start(1);
+        $first->scored(11, 'Critical', Severity::Major);
+        $first->finish();
+
+        $second = $this->progress($path);
+        $second->start(1);
+        $second->scored(11, 'Critical', Severity::Minor);
+        $second->finish();
+
+        $lines = array_filter(explode("\n", (string) file_get_contents($path)));
+
+        $this->assertCount(4, $lines, 'the first run is still there');
+        $this->assertArrayHasKey('run_started', (array) json_decode($lines[0], true));
+        $this->assertArrayHasKey('run_started', (array) json_decode($lines[2], true));
     }
 
     public function testAnUnwritableCheckpointDoesNotTakeTheRunDown(): void

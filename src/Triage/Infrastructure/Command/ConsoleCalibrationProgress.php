@@ -38,6 +38,12 @@ final class ConsoleCalibrationProgress implements CalibrationProgressInterface
 
     public function start(int $total): void
     {
+        // Append rather than truncate, so a checkpoint left behind by a run
+        // that died is still there after the next attempt - losing it would
+        // throw away exactly what it was written for. This header is what
+        // keeps the runs apart: without it both sets of lines sit in one file
+        // carrying the same issue numbers, and the salvage is ambiguous.
+        $this->append(['run_started' => date(\DATE_ATOM), 'items' => $total]);
         $this->io->progressStart($total);
     }
 
