@@ -10,6 +10,14 @@ use App\Shared\Infrastructure\Adapter\SpyMessageBus;
 use App\Shared\Infrastructure\Factory\CommandFactory\CommandFactory;
 use App\Shared\Infrastructure\Provider\TranslationsCatalogInterface;
 use App\Shared\Infrastructure\Provider\TranslationsCatalogProvider;
+use App\Triage\Domain\Gateway\IssueSearchInterface;
+use App\Triage\Domain\Gateway\SeverityClassifierInterface;
+use App\Triage\Infrastructure\Adapter\AnthropicSeverityClassifier;
+use App\Triage\Infrastructure\Adapter\RestGithubIssueSearch;
+use App\Triage\Infrastructure\Provider\AnthropicClientFactoryInterface;
+use App\Triage\Infrastructure\Provider\ApiKeyAnthropicClientFactory;
+use App\Triage\Infrastructure\Provider\FileRubricProvider;
+use App\Triage\Infrastructure\Provider\RubricProviderInterface;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 use Symfony\Component\Messenger\MessageBusInterface;
 
@@ -33,6 +41,8 @@ return function (ContainerConfigurator $configurator) {
             'prestashop.github.io',
         ])
         ->set('labels.excluded', ['TE', 'E2E Tests'])
+        ->set('triage.resources_dir', '%kernel.project_dir%/src/Triage/Infrastructure/Resources')
+        ->set('triage.report_path', '%kernel.project_dir%/var/report/triage-calibration.md')
     ;
     $services = $configurator->services();
     $services->defaults()
@@ -47,6 +57,9 @@ return function (ContainerConfigurator $configurator) {
         ->bind('$appVersion', '%app.version%')
         ->bind('$repoExcluded', '%repo.excluded%')
         ->bind('$labelsExcluded', '%labels.excluded%')
+        ->bind('$resourcesDirectory', '%triage.resources_dir%')
+        ->bind('$reportPath', '%triage.report_path%')
+        ->bind('$anthropicApiKey', '%env(string:default::ANTHROPIC_API_KEY)%')
     ;
 
     $services->load('App\\', '../src/')
@@ -67,6 +80,10 @@ return function (ContainerConfigurator $configurator) {
     $services->alias(PullRequestCardRepositoryInterface::class, GraphqlGithubPullRequestCardRepository::class);
     $services->alias(CommitterRepositoryInterface::class, RestGithubCommitterRepository::class);
     $services->alias(TranslationsCatalogInterface::class, TranslationsCatalogProvider::class);
+    $services->alias(SeverityClassifierInterface::class, AnthropicSeverityClassifier::class);
+    $services->alias(IssueSearchInterface::class, RestGithubIssueSearch::class);
+    $services->alias(RubricProviderInterface::class, FileRubricProvider::class);
+    $services->alias(AnthropicClientFactoryInterface::class, ApiKeyAnthropicClientFactory::class);
     $services->set(CommandFactory::class)
         ->args([
             tagged_iterator('app.shared.exclusion_strategy'),
