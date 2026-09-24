@@ -74,6 +74,44 @@ final class CalibrationResult
     }
 
     /**
+     * Scored items the rubric put below the level maintainers chose.
+     *
+     * Counted apart from the ones it put above, because the two do not cost
+     * the same: too low, a real problem can go unseen; too high, it costs the
+     * sheriff a look.
+     */
+    public function underestimated(): int
+    {
+        $count = 0;
+        foreach (Severity::cases() as $truth) {
+            foreach (Severity::cases() as $proposed) {
+                if ($truth->isMoreSevereThan($proposed)) {
+                    $count += $this->matrix[$truth->value][$proposed->value] ?? 0;
+                }
+            }
+        }
+
+        return $count;
+    }
+
+    /**
+     * Scored items the rubric put above the level maintainers chose.
+     */
+    public function overestimated(): int
+    {
+        $count = 0;
+        foreach (Severity::cases() as $truth) {
+            foreach (Severity::cases() as $proposed) {
+                if ($proposed->isMoreSevereThan($truth)) {
+                    $count += $this->matrix[$truth->value][$proposed->value] ?? 0;
+                }
+            }
+        }
+
+        return $count;
+    }
+
+    /**
      * Share of a level's issues the rubric also proposed at that level.
      *
      * Critical recall is the number that decides whether the top of the weekly

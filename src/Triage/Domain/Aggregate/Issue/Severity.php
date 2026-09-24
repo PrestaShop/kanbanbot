@@ -39,6 +39,18 @@ enum Severity: string
         return abs($this->rank() - $other->rank());
     }
 
+    /**
+     * Whether this level is more serious than the other.
+     *
+     * The direction of a miss matters as much as its size. Rated too low, a
+     * real problem can sit unseen at the bottom of the list; rated too high,
+     * it costs the sheriff a look and nothing worse.
+     */
+    public function isMoreSevereThan(self $other): bool
+    {
+        return $this->rank() < $other->rank();
+    }
+
     private function rank(): int
     {
         return match ($this) {

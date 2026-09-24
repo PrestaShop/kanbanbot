@@ -27,4 +27,12 @@ final class Disagreement
     {
         return $this->truth->distanceTo($this->proposed);
     }
+
+    /**
+     * The rubric put the issue below the level maintainers chose.
+     */
+    public function isUnderestimate(): bool
+    {
+        return $this->truth->isMoreSevereThan($this->proposed);
+    }
 }
