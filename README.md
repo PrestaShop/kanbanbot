@@ -78,8 +78,10 @@ php bin/console app:triage:calibrate --limit=40 --repeat=3   # how much of a mov
 ```
 
 Also `.github/workflows/triagecalibrate.yml`, **manual only**. Run it when the
-rubric changes, not on a schedule. The split seed is fixed, so two runs are
-directly comparable and this doubles as a regression test on the prompt.
+rubric changes, not on a schedule. The split seed is fixed, so two runs score
+the same items. Their answers are not fixed: a rate that moves between two
+runs has only changed once the move clears the likely range the report prints
+and the spread `--repeat` measures with nothing changed at all.
 
 There is no fine-tuning. The closed issues carrying exactly one severity
 label are split once, deterministically and stratified by class, into a pool
