@@ -208,6 +208,23 @@ class CalibrateRubricConsoleCommand extends Command
                 $r->scored,
                 ($r->scored - $r->exactAgreement() - $r->offByOne()) / $r->scored * 100
             ),
+            // Which way the misses lean says more than how many there are:
+            // a rubric that underrates hides problems, one that overrates
+            // only costs the sheriff time.
+            sprintf(
+                '- **Rated lower than maintainers did: %d/%d** (%.1f%%). These are the misses '
+                .'that can hide a real problem at the bottom of the list.',
+                $r->underestimated(),
+                $r->scored,
+                $r->underestimated() / $r->scored * 100
+            ),
+            sprintf(
+                '- **Rated higher than maintainers did: %d/%d** (%.1f%%). These cost the '
+                .'sheriff a look, nothing worse.',
+                $r->overestimated(),
+                $r->scored,
+                $r->overestimated() / $r->scored * 100
+            ),
         ];
 
         if ($r->failures() > 0) {
@@ -232,7 +249,8 @@ class CalibrateRubricConsoleCommand extends Command
         $lines[] = '';
         $lines[] = 'Each row is the label maintainers chose, each column what the rubric proposed. '
             .'The diagonal, from top left to bottom right, counts the issues where both agree. '
-            .'Every other cell is a disagreement, and each one is listed at the end of this report.';
+            .'Cells to the right of it are issues the rubric rated lower than maintainers did, '
+            .'cells to the left ones it rated higher. Each of them is listed at the end of this report.';
         $lines[] = '';
         $header = '| maintainer \\ rubric |';
         $divider = '|---|';
@@ -375,49 +393,52 @@ class CalibrateRubricConsoleCommand extends Command
         }
 
         $lines[] = sprintf(
-            '%d of the %d issues, furthest from the maintainers\' label first. The reasoning '
-            .'is the model\'s own, as it gave it.',
+            '%d of the %d issues. Those the rubric rated too low come first, because they are '
+            .'the ones that can hide a real problem, then those it rated too high. Within each, '
+            .'the furthest misses come first. The reasoning is the model\'s own, as it gave it.',
             count($r->disagreements),
             $r->scored
         );
         $lines[] = '';
 
         $levels = Severity::cases();
-        $disagreements = $r->disagreements;
-        usort(
-            $disagreements,
-            static fn (Disagreement $a, Disagreement $b): int => [$b->distance(), array_search($a->truth, $levels, true), $a->number]
-                <=> [$a->distance(), array_search($b->truth, $levels, true), $b->number]
-        );
+        $groups = [
+            'lower' => array_values(array_filter($r->disagreements, static fn (Disagreement $d): bool => $d->isUnderestimate())),
+            'higher' => array_values(array_filter($r->disagreements, static fn (Disagreement $d): bool => !$d->isUnderestimate())),
+        ];
 
-        $group = null;
-        foreach ($disagreements as $disagreement) {
-            $heading = $disagreement->distance() >= 2 ? '### Two levels apart or more' : '### One level apart';
-            if ($heading !== $group) {
-                if (null !== $group) {
-                    $lines[] = '';
-                }
-                $lines[] = $heading;
-                $lines[] = '';
-                $group = $heading;
+        foreach ($groups as $direction => $disagreements) {
+            if ([] === $disagreements) {
+                continue;
             }
+            usort(
+                $disagreements,
+                static fn (Disagreement $a, Disagreement $b): int => [$b->distance(), array_search($a->truth, $levels, true), $a->number]
+                    <=> [$a->distance(), array_search($b->truth, $levels, true), $b->number]
+            );
 
-            $lines[] = sprintf(
-                '- [#%d](https://github.com/%s/issues/%d) %s  ',
-                $disagreement->number,
-                $repository,
-                $disagreement->number,
-                $this->inline($disagreement->title)
-            );
-            $lines[] = sprintf(
-                '  Maintainers: **%s**, rubric: **%s**, confidence: %s',
-                $disagreement->truth->value,
-                $disagreement->proposed->value,
-                $disagreement->confidence->value
-            );
-            $lines[] = '  > '.$this->inline($disagreement->rationale);
+            $lines[] = sprintf('### Rated %s than maintainers did (%d)', $direction, count($disagreements));
+            $lines[] = '';
+            foreach ($disagreements as $disagreement) {
+                $lines[] = sprintf(
+                    '- [#%d](https://github.com/%s/issues/%d) %s  ',
+                    $disagreement->number,
+                    $repository,
+                    $disagreement->number,
+                    $this->inline($disagreement->title)
+                );
+                $lines[] = sprintf(
+                    '  Maintainers: **%s**, rubric: **%s**, %s %s, confidence: %s',
+                    $disagreement->truth->value,
+                    $disagreement->proposed->value,
+                    ['one level', 'two levels', 'three levels'][$disagreement->distance() - 1] ?? $disagreement->distance().' levels',
+                    $direction,
+                    $disagreement->confidence->value
+                );
+                $lines[] = '  > '.$this->inline($disagreement->rationale);
+            }
+            $lines[] = '';
         }
-        $lines[] = '';
 
         return $lines;
     }

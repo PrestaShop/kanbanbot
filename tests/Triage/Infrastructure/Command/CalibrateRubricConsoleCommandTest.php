@@ -46,13 +46,27 @@ class CalibrateRubricConsoleCommandTest extends TestCase
         $this->assertStringContainsString('## Where the rubric disagreed', $report);
         $this->assertStringContainsString('2 of the 4 issues', $report);
         $this->assertStringContainsString('https://github.com/x/y/issues/', $report);
-        $this->assertStringContainsString('Maintainers: **Critical**, rubric: **Minor**', $report);
+        $this->assertStringContainsString('Maintainers: **Critical**, rubric: **Minor**, two levels lower', $report);
+        $this->assertStringContainsString('Maintainers: **Minor**, rubric: **Major**, one level higher', $report);
         $this->assertStringContainsString('> staged verdict', $report);
         $this->assertLessThan(
-            strpos($report, '### One level apart'),
-            strpos($report, '### Two levels apart or more'),
-            'the furthest misses say the most about the rubric, so they come first'
+            strpos($report, '### Rated higher than maintainers did (1)'),
+            strpos($report, '### Rated lower than maintainers did (1)'),
+            'an underrated issue can hide a real problem, so those come first'
         );
+    }
+
+    public function testTheSummarySaysWhichWayTheMissesLean(): void
+    {
+        $report = $this->report([
+            Severity::Critical->value => Severity::Minor,
+            Severity::Major->value => Severity::Major,
+            Severity::Minor->value => Severity::Major,
+            Severity::Trivial->value => Severity::Trivial,
+        ]);
+
+        $this->assertStringContainsString('**Rated lower than maintainers did: 1/4**', $report);
+        $this->assertStringContainsString('**Rated higher than maintainers did: 1/4**', $report);
     }
 
     public function testAnIssueTitleCannotInjectMarkdown(): void

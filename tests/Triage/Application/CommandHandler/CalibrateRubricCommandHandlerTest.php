@@ -90,10 +90,30 @@ class CalibrateRubricCommandHandlerTest extends TestCase
         $result = $this->handle($corpus, $verdicts);
 
         $this->assertCount(6, $result->disagreements, 'every held-out non-Critical, and no agreement');
+        $this->assertSame(6, $result->overestimated(), 'calling everything Critical only ever rates too high');
+        $this->assertSame(0, $result->underestimated());
         foreach ($result->disagreements as $disagreement) {
             $this->assertNotSame(Severity::Critical, $disagreement->truth);
             $this->assertSame(Severity::Critical, $disagreement->proposed);
             $this->assertSame('staged verdict', $disagreement->rationale);
+        }
+    }
+
+    public function testUnderAndOverEstimatesAreCountedApart(): void
+    {
+        // Everything called Trivial: the mirror image, every miss too low.
+        $corpus = self::corpus(4);
+        $verdicts = [];
+        foreach ($corpus as $issue) {
+            $verdicts[$issue['number']] = Severity::Trivial;
+        }
+
+        $result = $this->handle($corpus, $verdicts);
+
+        $this->assertSame(6, $result->underestimated());
+        $this->assertSame(0, $result->overestimated());
+        foreach ($result->disagreements as $disagreement) {
+            $this->assertTrue($disagreement->isUnderestimate());
         }
     }
 
