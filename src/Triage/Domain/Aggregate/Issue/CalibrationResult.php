@@ -17,6 +17,7 @@ final class CalibrationResult
     /**
      * @param array<string, array<string, int>> $matrix         truth => proposal => count
      * @param array<string, int>                $failureReasons message => how many items it happened to
+     * @param array<int, Disagreement>          $disagreements  every scored item the rubric put on another level
      */
     public function __construct(
         public readonly array $matrix,
@@ -24,6 +25,7 @@ final class CalibrationResult
         public readonly array $failureReasons,
         public readonly float $estimatedCost,
         public readonly float $cachedInputShare = 0.0,
+        public readonly array $disagreements = [],
     ) {
     }
 

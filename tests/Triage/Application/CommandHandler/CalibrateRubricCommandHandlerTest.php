@@ -77,6 +77,26 @@ class CalibrateRubricCommandHandlerTest extends TestCase
         $this->assertSame(8, $result->proposedCount(Severity::Critical));
     }
 
+    public function testEveryDisagreementIsKeptWithItsReasoning(): void
+    {
+        // The matrix says how often the rubric disagrees. Only the list says
+        // which issues, so only the list can be investigated.
+        $corpus = self::corpus(4);
+        $verdicts = [];
+        foreach ($corpus as $issue) {
+            $verdicts[$issue['number']] = Severity::Critical;
+        }
+
+        $result = $this->handle($corpus, $verdicts);
+
+        $this->assertCount(6, $result->disagreements, 'every held-out non-Critical, and no agreement');
+        foreach ($result->disagreements as $disagreement) {
+            $this->assertNotSame(Severity::Critical, $disagreement->truth);
+            $this->assertSame(Severity::Critical, $disagreement->proposed);
+            $this->assertSame('staged verdict', $disagreement->rationale);
+        }
+    }
+
     public function testOffByOneIsCountedSeparatelyFromWorseMisses(): void
     {
         $corpus = self::corpus(2);

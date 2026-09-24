@@ -7,6 +7,7 @@ namespace App\Triage\Infrastructure\Command;
 use App\Triage\Application\Command\CalibrateRubricCommand;
 use App\Triage\Application\CommandHandler\CalibrateRubricCommandHandler;
 use App\Triage\Domain\Aggregate\Issue\CalibrationResult;
+use App\Triage\Domain\Aggregate\Issue\Disagreement;
 use App\Triage\Domain\Aggregate\Issue\Severity;
 use App\Triage\Domain\Exception\NothingScoredException;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -85,7 +86,7 @@ class CalibrateRubricConsoleCommand extends Command
             return Command::SUCCESS;
         }
 
-        $report = $this->render($result).$this->renderSpread($runs);
+        $report = $this->render($result, $repository).$this->renderSpread($runs);
 
         $output->writeln('');
         $output->write($report);
@@ -177,7 +178,7 @@ class CalibrateRubricConsoleCommand extends Command
         return is_string($value) && '' !== $value ? $value : $fallback;
     }
 
-    private function render(CalibrationResult $r): string
+    private function render(CalibrationResult $r, string $repository): string
     {
         $lines = [
             '# Calibration against maintainer labels',
@@ -229,7 +230,9 @@ class CalibrateRubricConsoleCommand extends Command
 
         $lines[] = '## Confusion matrix';
         $lines[] = '';
-        $lines[] = 'Rows are what the maintainers labelled, columns what the rubric proposed.';
+        $lines[] = 'Each row is the label maintainers chose, each column what the rubric proposed. '
+            .'The diagonal, from top left to bottom right, counts the issues where both agree. '
+            .'Every other cell is a disagreement, and each one is listed at the end of this report.';
         $lines[] = '';
         $header = '| maintainer \\ rubric |';
         $divider = '|---|';
@@ -237,7 +240,7 @@ class CalibrateRubricConsoleCommand extends Command
             $header .= ' '.$level->value.' |';
             $divider .= '---|';
         }
-        $lines[] = $header.' recall |';
+        $lines[] = $header.' found |';
         $lines[] = $divider.'---|';
 
         foreach (Severity::cases() as $truth) {
@@ -249,9 +252,9 @@ class CalibrateRubricConsoleCommand extends Command
         }
 
         $lines[] = '';
-        $lines[] = '## Per-class precision';
+        $lines[] = '## When the rubric proposes a level, how often is it right';
         $lines[] = '';
-        $lines[] = '| level | precision | 95% interval | proposed n |';
+        $lines[] = '| level | right | likely range | times proposed |';
         $lines[] = '|---|---|---|---|';
         foreach (Severity::cases() as $level) {
             [$low, $high] = $r->precisionInterval($level);
@@ -266,36 +269,171 @@ class CalibrateRubricConsoleCommand extends Command
         }
 
         $lines[] = '';
-        $lines[] = '## Reading this';
+        $lines[] = '## How to read this';
         $lines[] = '';
-        [$recallLow, $recallHigh] = $r->recallInterval(Severity::Critical);
-        [$precisionLow, $precisionHigh] = $r->precisionInterval(Severity::Critical);
+        foreach ($this->explainCritical($r) as $paragraph) {
+            $lines[] = $paragraph;
+            $lines[] = '';
+        }
         $lines[] = sprintf(
-            '**Critical recall is %.0f%% (%.0f-%.0f%%) and Critical precision is %.0f%% (%.0f-%.0f%%).** Recall is the '
-            .'share of real Criticals the rubric proposed as Critical: a miss there is an '
-            .'issue the sheriff never sees ranked. Precision is the counterweight - a rubric '
-            .'reaches every Critical by calling everything Critical, and the sheriff stops '
-            .'reading the section. Both, or neither.',
-            $r->recall(Severity::Critical) * 100,
-            $recallLow * 100,
-            $recallHigh * 100,
-            $r->precision(Severity::Critical) * 100,
-            $precisionLow * 100,
-            $precisionHigh * 100
+            '**How far to trust these numbers.** They come from %d issues. With so few, a '
+            .'rate could easily have come out a little higher or lower, and the "likely range" '
+            .'says by how much. When comparing two runs, treat a difference as real only if '
+            .'the ranges do not overlap. The model does not answer the same way twice either: '
+            .'`--repeat` shows how much the numbers move with nothing changed.',
+            $r->scored
         );
         $lines[] = '';
-        $lines[] = 'The bracketed ranges are 95% intervals, and they are wide because each '
-            .'rate is computed from a few dozen items. Two rubrics whose intervals overlap '
-            .'have not been shown to differ, however far apart their headline numbers look. '
-            .'They cover sampling error on this held-out set only; inference is not '
-            .'deterministic either, and `--repeat` measures that second source.';
-        $lines[] = '';
-        $lines[] = 'Weigh the matrix rather than the headline percentage. The corpus is heavily '
-            .'imbalanced, so answering "Minor" to everything would score well and say nothing. '
-            .'And these labels are years of decisions by many different people: this measures '
-            .'agreement with past practice, not correctness.';
+        $lines[] = '**What agreement means.** The labels were chosen by many people over several '
+            .'years, and most issues are Minor, so agreeing on Minor is easy and says little. A '
+            .'disagreement is not automatically a rubric error either: sometimes the label is the '
+            .'odd one out. Reading the cases below is how to tell the two apart.';
         $lines[] = '';
 
+        foreach ($this->renderDisagreements($r, $repository) as $line) {
+            $lines[] = $line;
+        }
+
         return implode(PHP_EOL, $lines);
+    }
+
+    /**
+     * The two Critical rates, said with the counts behind them.
+     *
+     * A percentage alone asks the reader to know what recall and precision
+     * are. "3 of 5" does not, and it shows how few items the rate rests on.
+     *
+     * @return array<int, string>
+     */
+    private function explainCritical(CalibrationResult $r): array
+    {
+        $found = $r->matrix[Severity::Critical->value][Severity::Critical->value] ?? 0;
+        $labelled = array_sum($r->matrix[Severity::Critical->value] ?? []);
+        $proposed = $r->proposedCount(Severity::Critical);
+        $paragraphs = [];
+
+        if (0 === $labelled) {
+            $paragraphs[] = '**No issue labelled Critical was scored in this run**, so it says '
+                .'nothing about the one level that decides the top of the sheriff\'s list.';
+        } else {
+            [$low, $high] = $r->recallInterval(Severity::Critical);
+            $paragraphs[] = sprintf(
+                '**Critical issues found: %d of %d.** Of the %d issues maintainers labelled '
+                .'Critical, the rubric recognised %s. %s Likely range: %.0f%% to %.0f%%.',
+                $found,
+                $labelled,
+                $labelled,
+                0 === $found ? 'none' : (string) $found,
+                $found === $labelled
+                    ? 'None was missed.'
+                    : sprintf(
+                        'The other %d would not have reached the top of the sheriff\'s list, '
+                        .'which is the costliest mistake it can make.',
+                        $labelled - $found
+                    ),
+                $low * 100,
+                $high * 100
+            );
+        }
+
+        if (0 === $proposed) {
+            $paragraphs[] = '**The rubric proposed no Critical in this run.**';
+        } else {
+            [$low, $high] = $r->precisionInterval(Severity::Critical);
+            $paragraphs[] = sprintf(
+                '**Critical proposals that were right: %d of %d.** This keeps the first number '
+                .'honest: a rubric that called everything Critical would find every real one, and '
+                .'the sheriff would soon stop trusting the label. Likely range: %.0f%% to %.0f%%.',
+                $found,
+                $proposed,
+                $low * 100,
+                $high * 100
+            );
+        }
+
+        return $paragraphs;
+    }
+
+    /**
+     * Every issue the rubric put on another level, furthest first.
+     *
+     * The matrix can only say how often the rubric disagrees. This is the
+     * part that says where, so that a surprising number can be investigated
+     * rather than argued about.
+     *
+     * @return array<int, string>
+     */
+    private function renderDisagreements(CalibrationResult $r, string $repository): array
+    {
+        $lines = ['## Where the rubric disagreed', ''];
+
+        if ([] === $r->disagreements) {
+            $lines[] = 'Nowhere: the rubric matched every label.';
+            $lines[] = '';
+
+            return $lines;
+        }
+
+        $lines[] = sprintf(
+            '%d of the %d issues, furthest from the maintainers\' label first. The reasoning '
+            .'is the model\'s own, as it gave it.',
+            count($r->disagreements),
+            $r->scored
+        );
+        $lines[] = '';
+
+        $levels = Severity::cases();
+        $disagreements = $r->disagreements;
+        usort(
+            $disagreements,
+            static fn (Disagreement $a, Disagreement $b): int => [$b->distance(), array_search($a->truth, $levels, true), $a->number]
+                <=> [$a->distance(), array_search($b->truth, $levels, true), $b->number]
+        );
+
+        $group = null;
+        foreach ($disagreements as $disagreement) {
+            $heading = $disagreement->distance() >= 2 ? '### Two levels apart or more' : '### One level apart';
+            if ($heading !== $group) {
+                if (null !== $group) {
+                    $lines[] = '';
+                }
+                $lines[] = $heading;
+                $lines[] = '';
+                $group = $heading;
+            }
+
+            $lines[] = sprintf(
+                '- [#%d](https://github.com/%s/issues/%d) %s  ',
+                $disagreement->number,
+                $repository,
+                $disagreement->number,
+                $this->inline($disagreement->title)
+            );
+            $lines[] = sprintf(
+                '  Maintainers: **%s**, rubric: **%s**, confidence: %s',
+                $disagreement->truth->value,
+                $disagreement->proposed->value,
+                $disagreement->confidence->value
+            );
+            $lines[] = '  > '.$this->inline($disagreement->rationale);
+        }
+        $lines[] = '';
+
+        return $lines;
+    }
+
+    /**
+     * Untrusted text made safe for one line of Markdown.
+     *
+     * Titles come from anyone who opens an issue and rationales from the
+     * model reading them, and both land in a page maintainers read. Collapsed
+     * so a newline cannot break out of the list item, escaped so neither can
+     * inject a link, an image or a table.
+     */
+    private function inline(string $text): string
+    {
+        $text = trim((string) preg_replace('/\s+/', ' ', $text));
+
+        return (string) preg_replace('/([\\\\`*_\[\]<>|#!~])/', '\\\\$1', $text);
     }
 }

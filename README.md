@@ -88,7 +88,7 @@ appears in a prompt. Mining from the held-out half would hand over the
 answers.
 
 Read the intervals, not the point estimates. Each rate is computed from a few
-dozen items, so the 95% intervals the report prints are wide, and two rubrics
+dozen items, so the 95% intervals the report prints as "likely range" are wide, and two rubrics
 whose intervals overlap have not been shown to differ however far apart their
 headline numbers look. Those intervals cover sampling error on the held-out
 set only. Inference is not deterministic either, which is what `--repeat`
@@ -100,7 +100,14 @@ imbalanced, so answering "Minor" to everything scores well and says nothing.
 The two numbers that matter are **Critical recall** (a Critical proposed as
 Minor is an issue the sheriff never sees ranked) and **Critical precision**,
 because a rubric reaches every Critical by calling everything Critical, and
-then people stop reading the section.
+then people stop reading the section. The report spells both out as counts
+("3 of 5") for readers who do not think in rates.
+
+Every disagreement is listed at the end of the report, issue by issue, with
+the label maintainers chose, the level the rubric proposed and the model's
+reasoning, furthest misses first. That list is where to start when a number
+looks wrong: some misses are the rubric's, some are a label nobody would pick
+today, and only reading them tells the two apart.
 
 ### Configuration
 

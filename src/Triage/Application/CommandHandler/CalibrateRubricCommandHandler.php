@@ -6,6 +6,7 @@ namespace App\Triage\Application\CommandHandler;
 
 use App\Triage\Application\Command\CalibrateRubricCommand;
 use App\Triage\Domain\Aggregate\Issue\CalibrationResult;
+use App\Triage\Domain\Aggregate\Issue\Disagreement;
 use App\Triage\Domain\Aggregate\Issue\IssueToClassify;
 use App\Triage\Domain\Aggregate\Issue\Severity;
 use App\Triage\Domain\Exception\ClassificationFailedException;
@@ -61,6 +62,8 @@ final class CalibrateRubricCommandHandler
         $scored = 0;
         /** @var array<string, int> $failureReasons */
         $failureReasons = [];
+        /** @var array<int, Disagreement> $disagreements */
+        $disagreements = [];
 
         $progress->start(count($heldOut));
 
@@ -87,6 +90,18 @@ final class CalibrateRubricCommandHandler
 
             ++$matrix[$issue['truth']][$verdict->severity->value];
             ++$scored;
+            if ($verdict->severity->value !== $issue['truth']) {
+                // The matrix says how often, this says which and why. Without
+                // the list, a disagreement can be counted but not investigated.
+                $disagreements[] = new Disagreement(
+                    number: $issue['number'],
+                    title: $issue['title'],
+                    truth: Severity::fromName($issue['truth']),
+                    proposed: $verdict->severity,
+                    confidence: $verdict->confidence,
+                    rationale: $verdict->rationale,
+                );
+            }
             $progress->scored($issue['number'], $issue['truth'], $verdict->severity);
         }
 
@@ -105,6 +120,7 @@ final class CalibrateRubricCommandHandler
             failureReasons: $failureReasons,
             estimatedCost: $this->classifier->estimatedCost(),
             cachedInputShare: $this->classifier->cachedInputShare(),
+            disagreements: $disagreements,
         );
     }
 
