@@ -12,7 +12,7 @@ class CommandFactory
      */
     public function __construct(
         private readonly iterable $exclusionStrategies,
-        private readonly iterable $commandStrategies
+        private readonly iterable $commandStrategies,
     ) {
     }
 

@@ -14,7 +14,7 @@ class AddLabelByApprovalCountCommandHandler
 {
     public function __construct(
         private readonly PullRequestRepositoryInterface $pullRequestRepository,
-        private readonly CommitterRepositoryInterface $committerRepository
+        private readonly CommitterRepositoryInterface $committerRepository,
     ) {
     }
 

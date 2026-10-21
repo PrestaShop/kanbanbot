@@ -14,7 +14,7 @@ class MovePullRequestCardToColumnByApprovalCountCommandHandler
 {
     public function __construct(
         private readonly PullRequestCardRepositoryInterface $pullRequestCardRepository,
-        private readonly CommitterRepositoryInterface $committersRepository
+        private readonly CommitterRepositoryInterface $committersRepository,
     ) {
     }
 

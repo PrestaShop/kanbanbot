@@ -13,7 +13,7 @@ class PullRequestCard
     private function __construct(
         private PullRequestCardId $id,
         private string $columnName,
-        private PullRequest $pullRequest
+        private PullRequest $pullRequest,
     ) {
     }
 

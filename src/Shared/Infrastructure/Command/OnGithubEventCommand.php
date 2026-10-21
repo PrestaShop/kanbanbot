@@ -18,7 +18,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 class OnGithubEventCommand extends Command
 {
     public function __construct(
-        readonly private EventDispatcherInterface $eventDispatcher,
+        private readonly EventDispatcherInterface $eventDispatcher,
     ) {
         parent::__construct();
     }

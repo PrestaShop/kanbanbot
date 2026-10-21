@@ -18,7 +18,7 @@ class CheckSecurityBranchCommandHandler
     private const MIN_SECURITY_VERSION = '8'; // v8 and above can have security PR!
 
     public function __construct(
-        private readonly PullRequestRepositoryInterface $prRepository
+        private readonly PullRequestRepositoryInterface $prRepository,
     ) {
     }
 

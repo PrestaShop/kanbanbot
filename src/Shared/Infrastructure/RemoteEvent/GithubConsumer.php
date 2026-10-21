@@ -14,7 +14,7 @@ use Symfony\Component\RemoteEvent\RemoteEvent;
 class GithubConsumer implements ConsumerInterface
 {
     public function __construct(
-        readonly private EventDispatcherInterface $eventDispatcher,
+        private readonly EventDispatcherInterface $eventDispatcher,
     ) {
     }
 

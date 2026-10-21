@@ -19,7 +19,7 @@ class WelcomeNewContributorCommandHandler
 
     public function __construct(
         private readonly CommitterRepositoryInterface $committerRepository,
-        private readonly PullRequestRepositoryInterface $prRepository
+        private readonly PullRequestRepositoryInterface $prRepository,
     ) {
     }
 
