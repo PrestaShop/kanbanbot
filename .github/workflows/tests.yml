@@ -6,7 +6,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        php: [ '8.1', '8.2']
+        php: [ '8.4' ]
         tests: ['unit_tests', 'integration_tests', 'endtoend_tests']
       fail-fast: false
     steps:

@@ -8,7 +8,7 @@ class PullRequestDiffHunk
 {
     public function __construct(
         private readonly string $head,
-        private readonly string $diff
+        private readonly string $diff,
     ) {
     }
 

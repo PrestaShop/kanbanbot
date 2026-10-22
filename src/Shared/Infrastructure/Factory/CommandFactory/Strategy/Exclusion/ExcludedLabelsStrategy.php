@@ -17,9 +17,9 @@ class ExcludedLabelsStrategy implements ExclusionStrategyInterface
     /**
      * @param array{
      *     pull_request: array{
-     *          labels: null|array{
+     *          labels: array{
      *              name: string,
-     *          },
+     *          }|null,
      *     }
      * } $payload
      */

@@ -17,7 +17,7 @@ class PullRequestDescription
     public const TEMPLATE_UI_TESTS = 'Please run UI tests and paste here the link to the run. [Read this page to know why and how to use this tool](https://devdocs.prestashop-project.org/8/contribute/contribution-guidelines/ui-tests/).';
 
     public function __construct(
-        private string $bodyContent
+        private string $bodyContent,
     ) {
     }
 

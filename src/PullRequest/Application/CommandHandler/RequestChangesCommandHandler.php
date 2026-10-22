@@ -12,7 +12,7 @@ use App\PullRequest\Domain\Gateway\PullRequestRepositoryInterface;
 class RequestChangesCommandHandler
 {
     public function __construct(
-        private readonly PullRequestRepositoryInterface $prRepository
+        private readonly PullRequestRepositoryInterface $prRepository,
     ) {
     }
 

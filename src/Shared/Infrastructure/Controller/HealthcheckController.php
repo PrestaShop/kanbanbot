@@ -11,7 +11,7 @@ use Symfony\Component\Routing\Annotation\Route;
 class HealthcheckController extends AbstractController
 {
     public function __construct(
-        private readonly RestPullRequestRepository $pullRequestRepository
+        private readonly RestPullRequestRepository $pullRequestRepository,
     ) {
     }
 

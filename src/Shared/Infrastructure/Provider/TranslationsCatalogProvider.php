@@ -21,7 +21,7 @@ class TranslationsCatalogProvider implements TranslationsCatalogInterface
 
     public function __construct(
         private readonly HttpClientInterface $httpClient,
-        private readonly CacheInterface $cache
+        private readonly CacheInterface $cache,
     ) {
     }
 

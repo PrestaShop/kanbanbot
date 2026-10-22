@@ -9,7 +9,7 @@ class PullRequestDiff
     public function __construct(
         private readonly PullRequestId $pullRequestId,
         /** @var PullRequestDiffFile[] $files */
-        private readonly array $files
+        private readonly array $files,
     ) {
     }
 

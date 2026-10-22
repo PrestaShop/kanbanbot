@@ -13,7 +13,7 @@ class RestGithubCommitterRepository implements CommitterRepositoryInterface
 {
     public function __construct(
         private readonly HttpClientInterface $githubClient,
-        private readonly CacheInterface $cache
+        private readonly CacheInterface $cache,
     ) {
     }
 
