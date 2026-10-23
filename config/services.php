@@ -17,7 +17,7 @@ use function Symfony\Component\DependencyInjection\Loader\Configurator\tagged_it
 
 return function (ContainerConfigurator $configurator) {
     $configurator->parameters()
-        ->set('app.version', '1.12.0')
+        ->set('app.version', '1.13.3')
         ->set('pull_request_dashboard_number', '17')
         ->set('columns.ready_for_review', 'Ready for review')
         ->set('columns.reopened', 'Reopened')
@@ -84,8 +84,8 @@ return function (ContainerConfigurator $configurator) {
 
         $services
             ->defaults()
-                ->public()
-                ->autowire()
+            ->public()
+            ->autowire()
         ;
 
         $services->set(RestPullRequestRepository::class);
