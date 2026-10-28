@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Shared\Infrastructure\Factory\CommandFactory\Strategy\Command;
 
-use App\PullRequest\Application\Command\CheckHookCommand;
 use App\PullRequest\Application\Command\CheckTranslationsCommand;
 use App\PullRequestDashboard\Application\Command\MovePullRequestCardToColumnByLabelCommand;
 use App\Shared\Infrastructure\Factory\CommandFactory\CommandStrategyInterface;
@@ -42,7 +41,7 @@ class PullRequestReopenedStrategy implements CommandStrategyInterface
      *     },
      * } $payload
      *
-     * @return array<MovePullRequestCardToColumnByLabelCommand|CheckTranslationsCommand|CheckHookCommand>
+     * @return array<MovePullRequestCardToColumnByLabelCommand|CheckTranslationsCommand>
      */
     public function createCommandsFromPayload(array $payload): array
     {
@@ -59,11 +58,6 @@ class PullRequestReopenedStrategy implements CommandStrategyInterface
                 $this->reopenedColumnName,
             ),
             new CheckTranslationsCommand(
-                $repoOwner,
-                $repoName,
-                $prNumber
-            ),
-            new CheckHookCommand(
                 $repoOwner,
                 $repoName,
                 $prNumber
