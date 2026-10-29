@@ -8,7 +8,6 @@ on:
     types: [opened, edited, reopened, synchronize, labeled]
 
 jobs:
-
   kanbanbot-integration:
     name: Trigger Integration CICD
     runs-on: ubuntu-latest
@@ -16,16 +15,24 @@ jobs:
     if: contains(github.event.pull_request.labels.*.name, 'integration deployment')
 
     steps:
-
       - name: Get tag
         shell: bash
         id: get_tag
         run: echo TAG=$(echo $GITHUB_REF | cut -d / -f 3) >> $GITHUB_OUTPUT
 
-      - name: Repository Dispatch
-        uses: peter-evans/repository-dispatch@v2
+      - name: Generate dispatch token
+        id: dispatch-token
+        uses: actions/create-github-app-token@v3
         with:
-          token: ${{ secrets.KANBANBOT_CD_PAT }}
-          repository: ${{ secrets.KANBANBOT_CD_REPOSITORY }}
+          client-id: ${{ secrets.KANBANBOT_DISPATCH_APP_CLIENT_ID }}
+          private-key: ${{ secrets.KANBANBOT_DISPATCH_APP_PRIVATE_KEY }}
+          owner: ${{ secrets.KANBANBOT_CD_REPOSITORY_OWNER }}
+          repositories: ${{ secrets.KANBANBOT_CD_REPOSITORY }}
+
+      - name: Dispatch deployment
+        uses: peter-evans/repository-dispatch@v4
+        with:
+          token: ${{ steps.dispatch-token.outputs.token }}
+          repository: ${{ secrets.KANBANBOT_CD_REPOSITORY_OWNER }}/${{ secrets.KANBANBOT_CD_REPOSITORY }}
           event-type: integration_deployment
           client-payload: '{"ref": "${{ github.ref }}", "sha": "${{ github.sha }}", "tag": "${{ steps.get_tag.outputs.TAG }}"}'
