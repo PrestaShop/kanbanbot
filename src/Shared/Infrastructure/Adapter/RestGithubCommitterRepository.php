@@ -32,16 +32,21 @@ class RestGithubCommitterRepository implements CommitterRepositoryInterface
             function (ItemInterface $item) use ($owner, $repo, $committer) {
                 $item->expiresAfter(60 * 60 * 6); // cache for 6 hours
 
-                $lastCommit = $this->githubClient->request('GET', '/repos/'.$owner.'/'.$repo.'/commits',
+                // A contributor is considered "new" while the current pull request is
+                // their only one in this repository. We rely on the search API so that
+                // still-open pull requests are taken into account: the /commits endpoint
+                // only returns merged contributions, which made the welcome message be
+                // re-posted on every new pull request as long as none had been merged.
+                $pullRequests = $this->githubClient->request('GET', '/search/issues',
                     [
                         'query' => [
-                            'author' => $committer,
+                            'q' => sprintf('repo:%s/%s type:pr author:%s', $owner, $repo, $committer),
                             'per_page' => 1,
                         ],
                     ]
                 )->toArray();
 
-                return 0 === count($lastCommit);
+                return ($pullRequests['total_count'] ?? 0) <= 1;
             }
         );
     }
