@@ -75,19 +75,23 @@ class MovePullRequestCardToColumnByApprovalCountCommandHandlerTest extends TestC
     }
 
     /**
-     * @return array<string, array{0: string, 1: string, 2: Approval[], 3: string}>
+     * @return array<string, array{0: string, 1: string, 2: Approval[], 3: string, 4: bool}>
      */
     public static function provideTestHandleApprovalsDropped(): array
     {
         return [
-            'Core, 2 -> 1 approval' => ['To be tested', 'PrestaShop', [new Approval('lartist')], 'Need 2nd approval'],
-            'Core, 2 -> 0 approval' => ['To be tested', 'PrestaShop', [], 'Ready for review'],
-            'Core, 1 -> 0 approval' => ['Need 2nd approval', 'PrestaShop', [], 'Ready for review'],
-            'Core, still 2 approvals' => ['To be tested', 'PrestaShop', [new Approval('lartist'), new Approval('nicosomb')], 'To be tested'],
-            'Module, 1 -> 0 approval' => ['To be tested', 'OtherThanPrestaShop', [], 'Ready for review'],
-            'Module, still 1 approval' => ['To be tested', 'OtherThanPrestaShop', [new Approval('lartist')], 'To be tested'],
-            'Other column untouched' => ['Waiting for PM/UX/Dev', 'PrestaShop', [new Approval('lartist')], 'Waiting for PM/UX/Dev'],
-            'Waiting for author untouched' => ['Waiting for author', 'PrestaShop', [], 'Waiting for author'],
+            'Core, 2 -> 1 approval' => ['To be tested', 'PrestaShop', [new Approval('lartist')], 'Need 2nd approval', false],
+            'Core, 2 -> 0 approval' => ['To be tested', 'PrestaShop', [], 'Ready for review', false],
+            'Core, 1 -> 0 approval' => ['Need 2nd approval', 'PrestaShop', [], 'Ready for review', false],
+            'Core, still 2 approvals' => ['To be tested', 'PrestaShop', [new Approval('lartist'), new Approval('nicosomb')], 'To be tested', false],
+            'Module, 1 -> 0 approval' => ['To be tested', 'OtherThanPrestaShop', [], 'Ready for review', false],
+            'Module, still 1 approval' => ['To be tested', 'OtherThanPrestaShop', [new Approval('lartist')], 'To be tested', false],
+            'Other column untouched' => ['Waiting for PM/UX/Dev', 'PrestaShop', [new Approval('lartist')], 'Waiting for PM/UX/Dev', true],
+            'Dismissal: Waiting for author untouched' => ['Waiting for author', 'PrestaShop', [], 'Waiting for author', false],
+            'Push: Waiting for author, 0 approval' => ['Waiting for author', 'PrestaShop', [], 'Ready for review', true],
+            'Push: Waiting for author, core 1 approval' => ['Waiting for author', 'PrestaShop', [new Approval('lartist')], 'Need 2nd approval', true],
+            'Push: Waiting for author, core 2 approvals' => ['Waiting for author', 'PrestaShop', [new Approval('lartist'), new Approval('nicosomb')], 'To be tested', true],
+            'Push: Waiting for author, module 1 approval' => ['Waiting for author', 'OtherThanPrestaShop', [new Approval('lartist')], 'To be tested', true],
         ];
     }
 
@@ -96,7 +100,7 @@ class MovePullRequestCardToColumnByApprovalCountCommandHandlerTest extends TestC
      *
      * @param Approval[] $approvals
      */
-    public function testHandleApprovalsDropped(string $originalColumn, string $repositoryName, array $approvals, string $expectedColumnName): void
+    public function testHandleApprovalsDropped(string $originalColumn, string $repositoryName, array $approvals, string $expectedColumnName, bool $authorPushed): void
     {
         $pullRequestCardId = new PullRequestCardId('17', 'PrestaShop', $repositoryName, '1');
         $this->pullRequestCardRepository->feed([
@@ -109,6 +113,7 @@ class MovePullRequestCardToColumnByApprovalCountCommandHandlerTest extends TestC
             repositoryName: $repositoryName,
             pullRequestNumber: '1',
             approvalsDropped: true,
+            authorPushed: $authorPushed,
         ));
         /** @var PullRequestCard $pullRequestCard */
         $pullRequestCard = $this->pullRequestCardRepository->find($pullRequestCardId);

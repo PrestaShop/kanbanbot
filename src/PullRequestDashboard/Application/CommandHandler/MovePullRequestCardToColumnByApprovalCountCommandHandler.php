@@ -35,7 +35,7 @@ class MovePullRequestCardToColumnByApprovalCountCommandHandler
 
         $committers = $this->committersRepository->findAll($pullRequestCard->getId()->repositoryOwner);
         if ($command->approvalsDropped) {
-            $pullRequestCard->moveBackByApprovalCount($committers);
+            $pullRequestCard->moveBackByApprovalCount($committers, $command->authorPushed);
         } else {
             $pullRequestCard->moveByApprovalCount($committers);
         }

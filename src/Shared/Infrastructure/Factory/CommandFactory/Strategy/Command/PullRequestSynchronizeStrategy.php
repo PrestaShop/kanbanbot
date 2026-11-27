@@ -63,7 +63,7 @@ class PullRequestSynchronizeStrategy implements CommandStrategyInterface
             new RemoveLabelCommand($repoOwner, $repoName, $prNumber, 'Waiting for author'),
             // The push may have dismissed stale approvals
             new AddLabelByApprovalCountCommand($repoOwner, $repoName, $prNumber),
-            new MovePullRequestCardToColumnByApprovalCountCommand($this->pullRequestDashboardNumber, $repoOwner, $repoName, $prNumber, approvalsDropped: true),
+            new MovePullRequestCardToColumnByApprovalCountCommand($this->pullRequestDashboardNumber, $repoOwner, $repoName, $prNumber, approvalsDropped: true, authorPushed: true),
         ];
     }
 }

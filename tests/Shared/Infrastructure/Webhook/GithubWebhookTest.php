@@ -583,7 +583,7 @@ class GithubWebhookTest extends WebTestCase
                     ),
                     new RemoveLabelCommand(repositoryOwner: 'owner', repositoryName: 'repo', pullRequestNumber: '123', label: 'Waiting for author'),
                     new AddLabelByApprovalCountCommand(repositoryOwner: 'owner', repositoryName: 'repo', pullRequestNumber: '123'),
-                    new MovePullRequestCardToColumnByApprovalCountCommand(projectNumber: '17', repositoryOwner: 'owner', repositoryName: 'repo', pullRequestNumber: '123', approvalsDropped: true),
+                    new MovePullRequestCardToColumnByApprovalCountCommand(projectNumber: '17', repositoryOwner: 'owner', repositoryName: 'repo', pullRequestNumber: '123', approvalsDropped: true, authorPushed: true),
                 ],
             ],
             [
