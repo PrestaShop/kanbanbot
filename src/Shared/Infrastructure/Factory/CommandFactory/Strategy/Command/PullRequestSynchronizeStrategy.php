@@ -7,6 +7,7 @@ namespace App\Shared\Infrastructure\Factory\CommandFactory\Strategy\Command;
 use App\PullRequest\Application\Command\AddLabelByApprovalCountCommand;
 use App\PullRequest\Application\Command\CheckTranslationsCommand;
 use App\PullRequest\Application\Command\RemoveLabelCommand;
+use App\PullRequest\Domain\Aggregate\PullRequest\PullRequest;
 use App\PullRequestDashboard\Application\Command\MovePullRequestCardToColumnByApprovalCountCommand;
 use App\Shared\Infrastructure\Factory\CommandFactory\CommandStrategyInterface;
 
@@ -59,8 +60,8 @@ class PullRequestSynchronizeStrategy implements CommandStrategyInterface
                 $repoName,
                 $prNumber
             ),
-            // The author pushed a fix
-            new RemoveLabelCommand($repoOwner, $repoName, $prNumber, 'Waiting for author'),
+            // The author pushed a fix, and a former QA validation no longer covers the new code
+            new RemoveLabelCommand($repoOwner, $repoName, $prNumber, ['Waiting for author', ...PullRequest::QA_VALIDATED_LABELS]),
             // The push may have dismissed stale approvals
             new AddLabelByApprovalCountCommand($repoOwner, $repoName, $prNumber),
             new MovePullRequestCardToColumnByApprovalCountCommand($this->pullRequestDashboardNumber, $repoOwner, $repoName, $prNumber, approvalsDropped: true, authorPushed: true),

@@ -154,6 +154,36 @@ class AddLabelByAapprovalCountCommandHandlerTest extends TestCase
                 [new Approval('lartist'), new Approval('nicosomb')],
                 ['QA ✔️'],
             ],
+            'Community QA validated: label not added back' => [
+                ['QA ✔️ by Community'],
+                new PullRequestId(
+                    repositoryOwner: 'PrestaShop',
+                    repositoryName: 'PrestaShop',
+                    pullRequestNumber: 'pullRequestNumber'
+                ),
+                [new Approval('lartist'), new Approval('nicosomb')],
+                ['QA ✔️ by Community'],
+            ],
+            'Waiting for community QA: no "Waiting for QA" added' => [
+                ['Waiting for QA by Community'],
+                new PullRequestId(
+                    repositoryOwner: 'PrestaShop',
+                    repositoryName: 'PrestaShop',
+                    pullRequestNumber: 'pullRequestNumber'
+                ),
+                [new Approval('lartist'), new Approval('nicosomb')],
+                ['Waiting for QA by Community'],
+            ],
+            'Approvals drop: community waiting label removed' => [
+                ['Waiting for QA by Community', 'develop'],
+                new PullRequestId(
+                    repositoryOwner: 'PrestaShop',
+                    repositoryName: 'PrestaShop',
+                    pullRequestNumber: 'pullRequestNumber'
+                ),
+                [new Approval('lartist')],
+                ['develop'],
+            ],
             'Outside PrestaShop org: untouched' => [
                 ['Waiting for QA'],
                 new PullRequestId(

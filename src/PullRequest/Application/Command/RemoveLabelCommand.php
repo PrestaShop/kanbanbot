@@ -10,7 +10,8 @@ class RemoveLabelCommand
         public readonly string $repositoryOwner,
         public readonly string $repositoryName,
         public readonly string $pullRequestNumber,
-        public readonly string $label,
+        /** @var string[] */
+        public readonly array $labels,
     ) {
     }
 }

@@ -22,10 +22,10 @@ class RemoveLabelCommandHandler
         if (null === $pullRequest) {
             throw new PullRequestNotFoundException();
         }
-        if (!in_array($command->label, $pullRequest->getLabels(), true)) {
+        if ([] === array_intersect($command->labels, $pullRequest->getLabels())) {
             return;
         }
-        $pullRequest->removeLabel($command->label);
+        $pullRequest->removeLabel(...$command->labels);
         $this->prRepository->update($pullRequest);
     }
 }

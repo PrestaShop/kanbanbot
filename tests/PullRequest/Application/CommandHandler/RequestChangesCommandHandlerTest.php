@@ -54,7 +54,7 @@ class RequestChangesCommandHandlerTest extends TestCase
                 static fn (string $label) => 'Waiting for author' === $label
             )
         );
-        $this->assertNotContains('Waiting for QA', $pr->getLabels());
+        $this->assertSame([], array_intersect(PullRequest::WAITING_FOR_QA_LABELS, $pr->getLabels()));
     }
 
     /**
@@ -86,6 +86,14 @@ class RequestChangesCommandHandlerTest extends TestCase
                     pullRequestNumber: 'pullRequestNumber'
                 ),
                 ['Waiting for QA'],
+            ],
+            'Community QA KO' => [
+                new PullRequestId(
+                    repositoryOwner: 'repositoryOwner',
+                    repositoryName: 'repositoryName',
+                    pullRequestNumber: 'pullRequestNumber'
+                ),
+                ['Waiting for QA by Community'],
             ],
         ];
     }

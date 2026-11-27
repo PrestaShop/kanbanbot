@@ -27,16 +27,17 @@ class RemoveLabelCommandHandlerTest extends TestCase
      * @dataProvider handleDataProvider
      *
      * @param string[] $originalLabels
+     * @param string[] $labels
      * @param string[] $expectedLabels
      */
-    public function testHandle(array $originalLabels, string $label, array $expectedLabels): void
+    public function testHandle(array $originalLabels, array $labels, array $expectedLabels): void
     {
         $pullRequestId = new PullRequestId('owner', 'repo', '1');
         $this->prRepository->feed([
             PullRequest::create(id: $pullRequestId, labels: $originalLabels, approvals: [], targetBranch: 'develop'),
         ]);
 
-        $this->handler->__invoke(new RemoveLabelCommand('owner', 'repo', '1', $label));
+        $this->handler->__invoke(new RemoveLabelCommand('owner', 'repo', '1', $labels));
         /** @var PullRequest $pr */
         $pr = $this->prRepository->find($pullRequestId);
 
@@ -44,20 +45,25 @@ class RemoveLabelCommandHandlerTest extends TestCase
     }
 
     /**
-     * @return array<string, array{0: string[], 1: string, 2: string[]}>
+     * @return array<string, array{0: string[], 1: string[], 2: string[]}>
      */
     public static function handleDataProvider(): array
     {
+        $onPush = ['Waiting for author', ...PullRequest::QA_VALIDATED_LABELS];
+
         return [
-            'Push after a fix' => [['Bug fix', 'Waiting for author', 'develop'], 'Waiting for author', ['Bug fix', 'develop']],
-            'QA validated' => [['Waiting for QA', 'QA ✔️'], 'Waiting for QA', ['QA ✔️']],
-            'Label absent' => [['Bug fix'], 'Waiting for author', ['Bug fix']],
+            'Push after a fix' => [['Bug fix', 'Waiting for author', 'develop'], $onPush, ['Bug fix', 'develop']],
+            'Push after QA validation' => [['Bug fix', 'QA ✔️'], $onPush, ['Bug fix']],
+            'Push after community QA validation' => [['QA ✔️ by Community', 'develop'], $onPush, ['develop']],
+            'QA validated' => [['Waiting for QA', 'QA ✔️'], PullRequest::WAITING_FOR_QA_LABELS, ['QA ✔️']],
+            'Community QA validated' => [['Waiting for QA by Community', 'QA ✔️ by Community'], PullRequest::WAITING_FOR_QA_LABELS, ['QA ✔️ by Community']],
+            'Label absent' => [['Bug fix'], $onPush, ['Bug fix']],
         ];
     }
 
     public function testPullRequestNotFound(): void
     {
         $this->expectException(PullRequestNotFoundException::class);
-        $this->handler->__invoke(new RemoveLabelCommand('fake', 'fake', 'fake', 'Waiting for author'));
+        $this->handler->__invoke(new RemoveLabelCommand('fake', 'fake', 'fake', ['Waiting for author']));
     }
 }
