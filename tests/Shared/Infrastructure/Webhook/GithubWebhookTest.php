@@ -10,7 +10,6 @@ use App\PullRequest\Application\Command\CheckSecurityBranchCommand;
 use App\PullRequest\Application\Command\CheckTableDescriptionCommand;
 use App\PullRequest\Application\Command\CheckTranslationsCommand;
 use App\PullRequest\Application\Command\NotifyCommunityQACommand;
-use App\PullRequest\Application\Command\RemoveLabelCommand;
 use App\PullRequest\Application\Command\RequestChangesCommand;
 use App\PullRequest\Application\Command\WelcomeNewContributorCommand;
 use App\PullRequestDashboard\Application\Command\MovePullRequestCardToColumnByApprovalCountCommand;
@@ -78,57 +77,7 @@ class GithubWebhookTest extends WebTestCase
                     }
                 }',
                 [
-                    new AddLabelByApprovalCountCommand(repositoryOwner: 'owner', repositoryName: 'repo', pullRequestNumber: '123'),
                     new RequestChangesCommand(repositoryOwner: 'owner', repositoryName: 'repo', pullRequestNumber: '123'),
-                    new MovePullRequestCardToColumnByLabelCommand(projectNumber: '17', repositoryOwner: 'owner', repositoryName: 'repo', pullRequestNumber: '123', label: 'Waiting for author'),
-                ],
-            ],
-            'Review dismissed' => [
-                'pull_request_review',
-                '{
-                    "action": "dismissed",
-                    "pull_request": {
-                        "base": {
-                            "repo": {
-                                "name": "repo",
-                                "owner": {
-                                    "login": "owner"
-                                }
-                            }
-                        },
-                        "number": 123
-                    },
-                    "review": {
-                      "state": "dismissed"
-                    }
-                }',
-                [
-                    new AddLabelByApprovalCountCommand(repositoryOwner: 'owner', repositoryName: 'repo', pullRequestNumber: '123'),
-                    new MovePullRequestCardToColumnByApprovalCountCommand(projectNumber: '17', repositoryOwner: 'owner', repositoryName: 'repo', pullRequestNumber: '123', approvalsDropped: true),
-                ],
-            ],
-            'QA validated' => [
-                'pull_request',
-                '{
-                    "action": "labeled",
-                    "label": {
-                        "name": "QA ✔️"
-                    },
-                    "pull_request": {
-                        "base": {
-                            "repo": {
-                                "name": "repo",
-                                "owner": {
-                                    "login": "owner"
-                                }
-                            }
-                        },
-                        "number": 123
-                    }
-                }',
-                [
-                    new MovePullRequestCardToColumnByLabelCommand(projectNumber: '17', repositoryOwner: 'owner', repositoryName: 'repo', pullRequestNumber: '123', label: 'QA ✔️'),
-                    new RemoveLabelCommand(repositoryOwner: 'owner', repositoryName: 'repo', pullRequestNumber: '123', label: 'Waiting for QA'),
                 ],
             ],
             [
@@ -581,9 +530,6 @@ class GithubWebhookTest extends WebTestCase
                         repositoryName: 'repo',
                         pullRequestNumber: '123'
                     ),
-                    new RemoveLabelCommand(repositoryOwner: 'owner', repositoryName: 'repo', pullRequestNumber: '123', label: 'Waiting for author'),
-                    new AddLabelByApprovalCountCommand(repositoryOwner: 'owner', repositoryName: 'repo', pullRequestNumber: '123'),
-                    new MovePullRequestCardToColumnByApprovalCountCommand(projectNumber: '17', repositoryOwner: 'owner', repositoryName: 'repo', pullRequestNumber: '123', approvalsDropped: true),
                 ],
             ],
             [

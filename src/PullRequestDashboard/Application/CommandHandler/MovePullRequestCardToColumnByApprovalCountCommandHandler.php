@@ -33,12 +33,7 @@ class MovePullRequestCardToColumnByApprovalCountCommandHandler
             throw new PullRequestCardNotFoundException();
         }
 
-        $committers = $this->committersRepository->findAll($pullRequestCard->getId()->repositoryOwner);
-        if ($command->approvalsDropped) {
-            $pullRequestCard->moveBackByApprovalCount($committers);
-        } else {
-            $pullRequestCard->moveByApprovalCount($committers);
-        }
+        $pullRequestCard->moveByApprovalCount($this->committersRepository->findAll($pullRequestCard->getId()->repositoryOwner));
         $this->pullRequestCardRepository->update($pullRequestCard);
     }
 }

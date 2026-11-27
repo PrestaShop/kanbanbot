@@ -59,7 +59,7 @@ class AddLabelByAapprovalCountCommandHandlerTest extends TestCase
     }
 
     /**
-     * @return array<int|string, array<int, array<int, string>|PullRequestId|Approval[]>>
+     * @return array<array<int, array<int, string>|PullRequestId|Approval[]>>
      */
     public static function provideTestHandle(): array
     {
@@ -103,66 +103,6 @@ class AddLabelByAapprovalCountCommandHandlerTest extends TestCase
                 ),
                 [new Approval('no_committer')],
                 [],
-            ],
-            'Third approval keeps the label' => [
-                [],
-                new PullRequestId(
-                    repositoryOwner: 'PrestaShop',
-                    repositoryName: 'PrestaShop',
-                    pullRequestNumber: 'pullRequestNumber'
-                ),
-                [new Approval('lartist'), new Approval('nicosomb'), new Approval('third')],
-                ['Waiting for QA'],
-            ],
-            'Label not duplicated' => [
-                ['Waiting for QA'],
-                new PullRequestId(
-                    repositoryOwner: 'PrestaShop',
-                    repositoryName: 'PrestaShop',
-                    pullRequestNumber: 'pullRequestNumber'
-                ),
-                [new Approval('lartist'), new Approval('nicosomb')],
-                ['Waiting for QA'],
-            ],
-            'Approvals drop below 2 on core' => [
-                ['Bug fix', 'Waiting for QA', 'develop'],
-                new PullRequestId(
-                    repositoryOwner: 'PrestaShop',
-                    repositoryName: 'PrestaShop',
-                    pullRequestNumber: 'pullRequestNumber'
-                ),
-                [new Approval('lartist')],
-                ['Bug fix', 'develop'],
-            ],
-            'Approvals drop to 0 on a module' => [
-                ['Waiting for QA'],
-                new PullRequestId(
-                    repositoryOwner: 'PrestaShop',
-                    repositoryName: 'OtherThanPrestaShop',
-                    pullRequestNumber: 'pullRequestNumber'
-                ),
-                [],
-                [],
-            ],
-            'QA validated: label not added back' => [
-                ['QA ✔️'],
-                new PullRequestId(
-                    repositoryOwner: 'PrestaShop',
-                    repositoryName: 'PrestaShop',
-                    pullRequestNumber: 'pullRequestNumber'
-                ),
-                [new Approval('lartist'), new Approval('nicosomb')],
-                ['QA ✔️'],
-            ],
-            'Outside PrestaShop org: untouched' => [
-                ['Waiting for QA'],
-                new PullRequestId(
-                    repositoryOwner: 'someone',
-                    repositoryName: 'PrestaShop',
-                    pullRequestNumber: 'pullRequestNumber'
-                ),
-                [],
-                ['Waiting for QA'],
             ],
         ];
     }

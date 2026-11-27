@@ -44,15 +44,9 @@ class PullRequest
 
     public function requestChanges(): void
     {
-        $this->removeLabel('Waiting for QA');
         if (!in_array('Waiting for author', $this->labels, true)) {
             $this->labels[] = 'Waiting for author';
         }
-    }
-
-    public function removeLabel(string $label): void
-    {
-        $this->labels = array_values(array_diff($this->labels, [$label]));
     }
 
     public function waitingForWording(): void
@@ -63,24 +57,26 @@ class PullRequest
     }
 
     /**
-     * Adds "Waiting for QA" once the PR has enough committer approvals, removes it when it falls below.
-     *
      * @param string[] $committers
      */
     public function addLabelByApprovalCount(array $committers): void
     {
-        if ('PrestaShop' !== $this->id->repositoryOwner) {
-            return;
-        }
         $validApprovals = array_filter(
             $this->approvals,
             static fn (Approval $approval) => in_array($approval->author, $committers, true)
         );
-        $requiredApprovals = 'PrestaShop' === $this->id->repositoryName ? 2 : 1;
-
-        if (count($validApprovals) < $requiredApprovals) {
-            $this->removeLabel('Waiting for QA');
-        } elseif (!$this->isQAValidated() && !in_array('Waiting for QA', $this->labels, true)) {
+        if (
+            'PrestaShop' === $this->id->repositoryOwner
+            && 'PrestaShop' === $this->id->repositoryName
+            && 2 === count($validApprovals)
+        ) {
+            $this->labels[] = 'Waiting for QA';
+        }
+        if (
+            'PrestaShop' === $this->id->repositoryOwner
+            && 'PrestaShop' !== $this->id->repositoryName
+            && 1 === count($validApprovals)
+        ) {
             $this->labels[] = 'Waiting for QA';
         }
     }

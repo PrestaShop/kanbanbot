@@ -66,26 +66,4 @@ class PullRequestCard
             $this->columnName = 'Need 2nd approval';
         }
     }
-
-    /**
-     * Moves the card back when approvals were lost (push, dismissal, changes requested).
-     * Only cards that sit in an approval-driven column are moved.
-     *
-     * @param string[] $committers
-     */
-    public function moveBackByApprovalCount(array $committers): void
-    {
-        if (!in_array($this->columnName, ['Need 2nd approval', 'To be tested'], true)) {
-            return;
-        }
-        $validApprovals = array_filter(
-            $this->pullRequest->approvals,
-            static fn (Approval $approval) => in_array($approval->author, $committers, true)
-        );
-        if (0 === count($validApprovals)) {
-            $this->columnName = 'Ready for review';
-        } else {
-            $this->moveByApprovalCount($committers);
-        }
-    }
 }
