@@ -74,6 +74,48 @@ class MovePullRequestCardToColumnByApprovalCountCommandHandlerTest extends TestC
         ];
     }
 
+    /**
+     * @return array<string, array{0: string, 1: string, 2: Approval[], 3: string}>
+     */
+    public static function provideTestHandleApprovalsDropped(): array
+    {
+        return [
+            'Core, 2 -> 1 approval' => ['To be tested', 'PrestaShop', [new Approval('lartist')], 'Need 2nd approval'],
+            'Core, 2 -> 0 approval' => ['To be tested', 'PrestaShop', [], 'Ready for review'],
+            'Core, 1 -> 0 approval' => ['Need 2nd approval', 'PrestaShop', [], 'Ready for review'],
+            'Core, still 2 approvals' => ['To be tested', 'PrestaShop', [new Approval('lartist'), new Approval('nicosomb')], 'To be tested'],
+            'Module, 1 -> 0 approval' => ['To be tested', 'OtherThanPrestaShop', [], 'Ready for review'],
+            'Module, still 1 approval' => ['To be tested', 'OtherThanPrestaShop', [new Approval('lartist')], 'To be tested'],
+            'Other column untouched' => ['Waiting for PM/UX/Dev', 'PrestaShop', [new Approval('lartist')], 'Waiting for PM/UX/Dev'],
+            'Waiting for author untouched' => ['Waiting for author', 'PrestaShop', [], 'Waiting for author'],
+        ];
+    }
+
+    /**
+     * @dataProvider provideTestHandleApprovalsDropped
+     *
+     * @param Approval[] $approvals
+     */
+    public function testHandleApprovalsDropped(string $originalColumn, string $repositoryName, array $approvals, string $expectedColumnName): void
+    {
+        $pullRequestCardId = new PullRequestCardId('17', 'PrestaShop', $repositoryName, '1');
+        $this->pullRequestCardRepository->feed([
+            PullRequestCard::create(id: $pullRequestCardId, columnName: $originalColumn, pullRequest: new PullRequest(approvals: $approvals)),
+        ]);
+
+        $this->movePullRequestCardToColumnByApprovalCountHandler->__invoke(new MovePullRequestCardToColumnByApprovalCountCommand(
+            projectNumber: '17',
+            repositoryOwner: 'PrestaShop',
+            repositoryName: $repositoryName,
+            pullRequestNumber: '1',
+            approvalsDropped: true,
+        ));
+        /** @var PullRequestCard $pullRequestCard */
+        $pullRequestCard = $this->pullRequestCardRepository->find($pullRequestCardId);
+
+        $this->assertSame($expectedColumnName, $pullRequestCard->getColumnName());
+    }
+
     protected function setUp(): void
     {
         $this->pullRequestCardRepository = new InMemoryPullRequestPullRequestCardRepository();

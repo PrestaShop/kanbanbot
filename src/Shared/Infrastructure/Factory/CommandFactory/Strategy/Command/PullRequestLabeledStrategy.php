@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Shared\Infrastructure\Factory\CommandFactory\Strategy\Command;
 
 use App\PullRequest\Application\Command\NotifyCommunityQACommand;
+use App\PullRequest\Application\Command\RemoveLabelCommand;
 use App\PullRequestDashboard\Application\Command\MovePullRequestCardToColumnByLabelCommand;
 use App\Shared\Infrastructure\Factory\CommandFactory\CommandStrategyInterface;
 
@@ -43,7 +44,7 @@ class PullRequestLabeledStrategy implements CommandStrategyInterface
      *     }
      * } $payload
      *
-     * @return array<MovePullRequestCardToColumnByLabelCommand|NotifyCommunityQACommand>
+     * @return array<MovePullRequestCardToColumnByLabelCommand|NotifyCommunityQACommand|RemoveLabelCommand>
      */
     public function createCommandsFromPayload(array $payload): array
     {
@@ -68,6 +69,10 @@ class PullRequestLabeledStrategy implements CommandStrategyInterface
                 $repoName,
                 $prNumber,
             );
+        }
+
+        if ('QA ✔️' === $labelName) {
+            $commands[] = new RemoveLabelCommand($repoOwner, $repoName, $prNumber, 'Waiting for QA');
         }
 
         return $commands;

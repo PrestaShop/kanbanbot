@@ -11,6 +11,7 @@ class MovePullRequestCardToColumnByApprovalCountCommand
         public readonly string $repositoryOwner,
         public readonly string $repositoryName,
         public readonly string $pullRequestNumber,
+        public readonly bool $approvalsDropped = false,
     ) {
     }
 }
