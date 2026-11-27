@@ -4,11 +4,19 @@ declare(strict_types=1);
 
 namespace App\Shared\Infrastructure\Factory\CommandFactory\Strategy\Command;
 
+use App\PullRequest\Application\Command\AddLabelByApprovalCountCommand;
 use App\PullRequest\Application\Command\CheckTranslationsCommand;
+use App\PullRequest\Application\Command\RemoveLabelCommand;
+use App\PullRequestDashboard\Application\Command\MovePullRequestCardToColumnByApprovalCountCommand;
 use App\Shared\Infrastructure\Factory\CommandFactory\CommandStrategyInterface;
 
 class PullRequestSynchronizeStrategy implements CommandStrategyInterface
 {
+    public function __construct(
+        private readonly string $pullRequestDashboardNumber,
+    ) {
+    }
+
     /**
      * @param array{
      *     action: string,
@@ -37,7 +45,7 @@ class PullRequestSynchronizeStrategy implements CommandStrategyInterface
      *     },
      * } $payload
      *
-     * @return array<CheckTranslationsCommand>
+     * @return array<CheckTranslationsCommand|RemoveLabelCommand|AddLabelByApprovalCountCommand|MovePullRequestCardToColumnByApprovalCountCommand>
      */
     public function createCommandsFromPayload(array $payload): array
     {
@@ -51,6 +59,11 @@ class PullRequestSynchronizeStrategy implements CommandStrategyInterface
                 $repoName,
                 $prNumber
             ),
+            // The author pushed a fix
+            new RemoveLabelCommand($repoOwner, $repoName, $prNumber, 'Waiting for author'),
+            // The push may have dismissed stale approvals
+            new AddLabelByApprovalCountCommand($repoOwner, $repoName, $prNumber),
+            new MovePullRequestCardToColumnByApprovalCountCommand($this->pullRequestDashboardNumber, $repoOwner, $repoName, $prNumber, approvalsDropped: true),
         ];
     }
 }
