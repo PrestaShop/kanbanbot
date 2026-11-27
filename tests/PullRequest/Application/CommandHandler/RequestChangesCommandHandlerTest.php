@@ -54,10 +54,11 @@ class RequestChangesCommandHandlerTest extends TestCase
                 static fn (string $label) => 'Waiting for author' === $label
             )
         );
+        $this->assertSame([], array_intersect(PullRequest::WAITING_FOR_QA_LABELS, $pr->getLabels()));
     }
 
     /**
-     * @return array<array{0: PullRequestId, 1: string[]}>
+     * @return array<int|string, array{0: PullRequestId, 1: string[]}>
      */
     public static function handleDataProvider(): array
     {
@@ -77,6 +78,22 @@ class RequestChangesCommandHandlerTest extends TestCase
                     pullRequestNumber: 'pullRequestNumber'
                 ),
                 ['Waiting for author'],
+            ],
+            'QA KO' => [
+                new PullRequestId(
+                    repositoryOwner: 'repositoryOwner',
+                    repositoryName: 'repositoryName',
+                    pullRequestNumber: 'pullRequestNumber'
+                ),
+                ['Waiting for QA'],
+            ],
+            'Community QA KO' => [
+                new PullRequestId(
+                    repositoryOwner: 'repositoryOwner',
+                    repositoryName: 'repositoryName',
+                    pullRequestNumber: 'pullRequestNumber'
+                ),
+                ['Waiting for QA by Community'],
             ],
         ];
     }

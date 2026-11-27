@@ -6,6 +6,10 @@ namespace App\PullRequest\Domain\Aggregate\PullRequest;
 
 class PullRequest
 {
+    public const WAITING_FOR_QA_LABELS = ['Waiting for QA', 'Waiting for QA by Community'];
+    // hummingbird names its community label "QA by Community ✓"
+    public const QA_VALIDATED_LABELS = ['QA ✔️', 'QA ✔️ by Community', 'QA by Community ✓'];
+
     /**
      * @param string[]   $labels
      * @param Approval[] $approvals
@@ -44,9 +48,15 @@ class PullRequest
 
     public function requestChanges(): void
     {
+        $this->removeLabel(...self::WAITING_FOR_QA_LABELS);
         if (!in_array('Waiting for author', $this->labels, true)) {
             $this->labels[] = 'Waiting for author';
         }
+    }
+
+    public function removeLabel(string ...$labels): void
+    {
+        $this->labels = array_values(array_diff($this->labels, $labels));
     }
 
     public function waitingForWording(): void
@@ -57,26 +67,25 @@ class PullRequest
     }
 
     /**
+     * Adds "Waiting for QA" once the PR has enough committer approvals (unless it already waits for a QA or is validated),
+     * removes the "Waiting for QA" labels when it falls below.
+     *
      * @param string[] $committers
      */
     public function addLabelByApprovalCount(array $committers): void
     {
+        if ('PrestaShop' !== $this->id->repositoryOwner) {
+            return;
+        }
         $validApprovals = array_filter(
             $this->approvals,
             static fn (Approval $approval) => in_array($approval->author, $committers, true)
         );
-        if (
-            'PrestaShop' === $this->id->repositoryOwner
-            && 'PrestaShop' === $this->id->repositoryName
-            && 2 === count($validApprovals)
-        ) {
-            $this->labels[] = 'Waiting for QA';
-        }
-        if (
-            'PrestaShop' === $this->id->repositoryOwner
-            && 'PrestaShop' !== $this->id->repositoryName
-            && 1 === count($validApprovals)
-        ) {
+        $requiredApprovals = 'PrestaShop' === $this->id->repositoryName ? 2 : 1;
+
+        if (count($validApprovals) < $requiredApprovals) {
+            $this->removeLabel(...self::WAITING_FOR_QA_LABELS);
+        } elseif (!$this->isQAValidated() && [] === array_intersect(self::WAITING_FOR_QA_LABELS, $this->labels)) {
             $this->labels[] = 'Waiting for QA';
         }
     }
@@ -137,6 +146,6 @@ class PullRequest
 
     public function isQAValidated(): bool
     {
-        return in_array('QA ✔️', $this->labels);
+        return [] !== array_intersect(self::QA_VALIDATED_LABELS, $this->labels);
     }
 }

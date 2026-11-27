@@ -66,4 +66,37 @@ class PullRequestCard
             $this->columnName = 'Need 2nd approval';
         }
     }
+
+    /**
+     * Moves the card back when approvals were lost (push, dismissal, changes requested).
+     * Only cards that sit in an approval-driven column are moved, plus "Waiting for author" after a push:
+     * the push removes that label, and "unlabeled" events are not handled.
+     *
+     * @param string[] $committers
+     */
+    public function moveBackByApprovalCount(array $committers, bool $authorPushed = false): void
+    {
+        $movableColumns = ['Need 2nd approval', 'To be tested'];
+        if ($authorPushed) {
+            $movableColumns[] = 'Waiting for author';
+        }
+        if (!in_array($this->columnName, $movableColumns, true)) {
+            return;
+        }
+        $approvalCount = count(array_filter(
+            $this->pullRequest->approvals,
+            static fn (Approval $approval) => in_array($approval->author, $committers, true)
+        ));
+        $requiredApprovals = in_array(
+            $this->id->repositoryOwner.'/'.$this->id->repositoryName,
+            self::REPOSITORY_WITH_2_APPROVALS,
+            true
+        ) ? 2 : 1;
+
+        $this->columnName = match (true) {
+            0 === $approvalCount => 'Ready for review',
+            $approvalCount < $requiredApprovals => 'Need 2nd approval',
+            default => 'To be tested',
+        };
+    }
 }

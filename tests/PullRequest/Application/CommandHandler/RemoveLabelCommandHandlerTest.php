@@ -1,0 +1,69 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Tests\PullRequest\Application\CommandHandler;
+
+use App\PullRequest\Application\Command\RemoveLabelCommand;
+use App\PullRequest\Application\CommandHandler\RemoveLabelCommandHandler;
+use App\PullRequest\Domain\Aggregate\PullRequest\PullRequest;
+use App\PullRequest\Domain\Aggregate\PullRequest\PullRequestId;
+use App\PullRequest\Domain\Exception\PullRequestNotFoundException;
+use App\PullRequest\Infrastructure\Adapter\InMemoryPullRequestRepository;
+use PHPUnit\Framework\TestCase;
+
+class RemoveLabelCommandHandlerTest extends TestCase
+{
+    private RemoveLabelCommandHandler $handler;
+    private InMemoryPullRequestRepository $prRepository;
+
+    protected function setUp(): void
+    {
+        $this->prRepository = new InMemoryPullRequestRepository();
+        $this->handler = new RemoveLabelCommandHandler($this->prRepository);
+    }
+
+    /**
+     * @dataProvider handleDataProvider
+     *
+     * @param string[] $originalLabels
+     * @param string[] $labels
+     * @param string[] $expectedLabels
+     */
+    public function testHandle(array $originalLabels, array $labels, array $expectedLabels): void
+    {
+        $pullRequestId = new PullRequestId('owner', 'repo', '1');
+        $this->prRepository->feed([
+            PullRequest::create(id: $pullRequestId, labels: $originalLabels, approvals: [], targetBranch: 'develop'),
+        ]);
+
+        $this->handler->__invoke(new RemoveLabelCommand('owner', 'repo', '1', $labels));
+        /** @var PullRequest $pr */
+        $pr = $this->prRepository->find($pullRequestId);
+
+        $this->assertSame($expectedLabels, $pr->getLabels());
+    }
+
+    /**
+     * @return array<string, array{0: string[], 1: string[], 2: string[]}>
+     */
+    public static function handleDataProvider(): array
+    {
+        $onPush = ['Waiting for author', ...PullRequest::QA_VALIDATED_LABELS];
+
+        return [
+            'Push after a fix' => [['Bug fix', 'Waiting for author', 'develop'], $onPush, ['Bug fix', 'develop']],
+            'Push after QA validation' => [['Bug fix', 'QA ✔️'], $onPush, ['Bug fix']],
+            'Push after community QA validation' => [['QA ✔️ by Community', 'develop'], $onPush, ['develop']],
+            'QA validated' => [['Waiting for QA', 'QA ✔️'], PullRequest::WAITING_FOR_QA_LABELS, ['QA ✔️']],
+            'Community QA validated' => [['Waiting for QA by Community', 'QA ✔️ by Community'], PullRequest::WAITING_FOR_QA_LABELS, ['QA ✔️ by Community']],
+            'Label absent' => [['Bug fix'], $onPush, ['Bug fix']],
+        ];
+    }
+
+    public function testPullRequestNotFound(): void
+    {
+        $this->expectException(PullRequestNotFoundException::class);
+        $this->handler->__invoke(new RemoveLabelCommand('fake', 'fake', 'fake', ['Waiting for author']));
+    }
+}
